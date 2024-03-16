@@ -1,0 +1,7 @@
+Django==5.0.2
+djangorestframework==3.14.0
+djangorestframework_simplejwt==5.3.0
+Faker==21.0.0
+PyJWT==2.8.0
+pytz==2023.3.post1
+stripe==8.2.0

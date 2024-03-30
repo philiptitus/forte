@@ -53,17 +53,19 @@ class AccommodationCreateView(APIView):
             if hostel.gender != request.user.gender:
                 return Response({'detail': 'This Hostel Is Not Your Gender'}, status=status.HTTP_400_BAD_REQUEST)
 
+            if accommodation_type == "Occupied" and capacity == 1:
+                return Response({'detail': 'Cant Choose An Occupied Single Room'}, status=status.HTTP_400_BAD_REQUEST)
+
             # Check if the user is a student
             if request.user.user_type != 'student':
                 return Response({'detail': 'Only students are allowed to create accommodations.'}, status=status.HTTP_403_FORBIDDEN)
-            
+
             # Check if the student already has an active accommodation
             active_accommodations = Accommodations.objects.filter(student=request.user, status__in=['Active', 'Delayed Payment'])
             if active_accommodations.exists():
                 return Response({'detail': 'You already have an active accommodation.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            if accommodation_type == "Occupied" and capacity == 1:
-                return Response({'detail': 'Cant Choose An Occupied Single Room'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
             # Check if the hostel exists
@@ -76,11 +78,11 @@ class AccommodationCreateView(APIView):
                 room = Rooms.objects.filter(hostel=hostel , isAvailable = True , capacity=capacity, current_occupancy__gt=0).first()
             else:
                 return Response({'detail': 'No Rooms With Specified Info Available For Now.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
             # Check if a room is available
             if not room:
                 return Response({'detail': f'No available room with specified info.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
             # Calculate price based on duration and room capacity
             try:
                 capacity = int(capacity)  # Ensure capacity is an integer
@@ -132,7 +134,7 @@ class AccommodationCreateView(APIView):
             person = CustomUser.objects.get(id=request.user.id)
             person.hostel = hostel
             person.save()
-            
+
             # Update room occupancy
             room.current_occupancy += 1
             room.save()
@@ -193,7 +195,7 @@ class CreateComplaintAPIView(APIView):
     def post(self, request):
         # Make a mutable copy of the request data
         mutable_data = request.data.copy()
-        
+
         # Modify the mutable copy
         mutable_data['status'] = 'Open'
 
@@ -262,8 +264,8 @@ class CreateMaintenanceAPIView(APIView):
             return Response({"error": "Your accommodation is missing student information."}, status=status.HTTP_400_BAD_REQUEST)
 
         data['hostel'] = accommodation.hostel.id
-        data['room'] = accommodation.room.id   
-        data['student'] = user.id   
+        data['room'] = accommodation.room.id
+        data['student'] = user.id
 
         if not data.get('facility_id'):
             return Response({"detail": "Please specify a facility for the maintenance request."}, status=status.HTTP_400_BAD_REQUEST)
@@ -305,22 +307,22 @@ class ReviewCreateView(APIView):
     def post(self, request):
         if request.user.user_type != 'student':
             return Response({'detail': 'Only students are allowed to create Reviews.'}, status=status.HTTP_403_FORBIDDEN)
-        
+
         # Check if the user has an active accommodation
         completed_accommodations = Accommodations.objects.filter(student=request.user, status='Completed')
         if not completed_accommodations.exists():
             return Response({'detail': 'You do not have any completed accommodations.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Fetch the first completed accommodation for the user
         first_completed_accommodation = completed_accommodations.first()
-        
+
         # Extract the hostel from the accommodation
         hostel = first_completed_accommodation.hostel
-        
+
         # Check if the user has already reviewed the hostel
         if Reviews.objects.filter(hostel=hostel, user=request.user).exists():
             return Response({'detail': 'You have already reviewed this hostel.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Create the review
         serializer = ReviewSerializer(data=request.data)
         if serializer.is_valid():
@@ -352,7 +354,7 @@ class ReviewListView(APIView):
             if hostel_b:
                     reviews = Reviews.objects.filter(hostel_id=hostel_b)
                     print("Fetching A  Specific Hostel's Reviews")
-            else: 
+            else:
 
 
             # Fetch all reviews by the authenticated student
@@ -384,7 +386,7 @@ class ReviewListView(APIView):
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(reviews, request)
-        
+
         # Serialize the reviews
         serializer = ReviewSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
@@ -408,12 +410,12 @@ class ComplaintsListView(APIView):
         elif request.user.user_type == 'student':
             if request.user.user_type != 'student':
                 return Response({'detail': 'Only students are allowed to view their complaints.'}, status=status.HTTP_403_FORBIDDEN)
-            
+
             # Fetch all complaints by the authenticated student
             complaints = Complaints.objects.filter(student=request.user)
         else:
             return Response({'detail': 'Invalid complaint type.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
 
         name = request.query_params.get('name')
         if name:
@@ -425,7 +427,7 @@ class ComplaintsListView(APIView):
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(complaints, request)
-        
+
         # Serialize the complaints
         serializer = ComplaintSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
@@ -449,7 +451,7 @@ class MaintenanceListView(APIView):
         elif request.user.user_type == 'student':
             if request.user.user_type != 'student':
                 return Response({'detail': 'Only students are allowed to view their maintenance requests.'}, status=status.HTTP_403_FORBIDDEN)
-            
+
             # Fetch all maintenance requests by the authenticated student
             maintenance_requests = Maintenance.objects.filter(student=request.user)
         else:
@@ -468,7 +470,7 @@ class MaintenanceListView(APIView):
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(maintenance_requests, request)
-             
+
         # Serialize the maintenance requests
         serializer = MaintenanceSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
@@ -479,17 +481,17 @@ class DeleteReview(APIView):
         review = Reviews.objects.filter(pk=pk).first()
         if not review:
             return Response({"message": "Review not found."}, status=status.HTTP_404_NOT_FOUND)
-         
+
         # Check if the request user is the review user
         if request.user == review.user:
             review.delete()
             return Response({"message": "Review deleted successfully."})
-        
+
         # Check if the request user is staff or admin and hostel matches
         if request.user.user_type in ['staff', 'admin'] and request.user.hostel == review.hostel:
             review.delete()
             return Response({"message": "Review deleted successfully."})
-        
+
         return Response({"message": "You are not authorized to delete this review."}, status=status.HTTP_403_FORBIDDEN)
 
 
@@ -500,9 +502,9 @@ class ComplaintDetailView(APIView):
         complaint = Complaints.objects.filter(pk=pk).first()
         if not complaint:
             return Response({"message": "Complaint not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         user_type = request.user.user_type
-        
+
         if user_type == 'student':
             if complaint.student != request.user:
                 return Response({"message": "You are not authorized to view this complaint."}, status=status.HTTP_403_FORBIDDEN)
@@ -511,7 +513,7 @@ class ComplaintDetailView(APIView):
                 return Response({"message": "You are not authorized to view this complaint."}, status=status.HTTP_403_FORBIDDEN)
             elif request.user.hostel != complaint.hostel:
                 return Response({"message": "You are not authorized to view this complaint."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         # Serialize and return the complaint data
         serializer = ComplaintSerializer(complaint)  # Replace YourComplaintSerializerClass with your actual serializer class
         return Response(serializer.data)
@@ -522,23 +524,23 @@ class AccommodationDetailView(APIView):
 
     def get(self, request, pk):
         accommodation = Accommodations.objects.filter(pk=pk).first()
-        
+
         # Check if the accommodation exists
         if not accommodation:
             return Response({"message": "Accommodation not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         # Check if the requesting user is an admin or staff of the hostel
         if request.user.user_type in ['admin', 'staff'] and request.user.hostel == accommodation.hostel:
             return self.serialize_accommodation(accommodation)
-        
+
         # Check if the requesting user is the owner of the accommodation
         if request.user == accommodation.student:
             return self.serialize_accommodation(accommodation)
-        
+
         return Response({"message": "You are not authorized to access this accommodation."}, status=status.HTTP_403_FORBIDDEN)
 
     def serialize_accommodation(self, accommodation):
-        data = { 
+        data = {
             "id": accommodation.id,
             "studentid": accommodation.student.id if accommodation.student else None,
             "student": accommodation.student.Id_number if accommodation.student else None,
@@ -570,10 +572,10 @@ class NotificationListView(APIView):
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(notifications, request)
-       
+
         # Serialize notifications
         serializer = NoticeSerializer(result_page, many=True)
-        
+
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -584,19 +586,19 @@ class UpdateComplaintStatus(APIView):
         # Check if the request user type is admin or staff
         if request.user.user_type not in ['admin', 'staff']:
             return Response({"message": "You are not authorized to update complaint status."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         complaint = Complaints.objects.filter(pk=pk).first()
         if not complaint:
             return Response({"message": "Complaint not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         # Check if the requesting user's hostel is equal to the complaint's hostel
         if request.user.hostel != complaint.hostel:
             return Response({"message": "You are not authorized to update this complaint."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         status_value = request.data.get('status', None)
         if not status_value:
             return Response({"message": "Status not provided."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if status_value == 'In Progress':
             complaint.status = 'In Progress'
         elif status_value == 'Resolved':
@@ -605,7 +607,7 @@ class UpdateComplaintStatus(APIView):
             complaint.date_resolved = timezone.now()
         else:
             return Response({"message": "Invalid status provided."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         complaint.save()
 
         # Create a notice for the complaint owner
@@ -615,7 +617,7 @@ class UpdateComplaintStatus(APIView):
 
             message=f"Your complaint Of {complaint.description}  status has been updated to {complaint.status}."
         )
-        
+
         return Response({"message": "Complaint status updated successfully."})
 
 
@@ -626,15 +628,15 @@ class UpdateAccommodation(APIView):
         # Check if the request user type is admin or staff
         # if request.user.user_type not in ['admin', 'staff']:
         #     return Response({"message": "You are not authorized to update accommodations."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         accommodation = Accommodations.objects.filter(pk=pk).first()
         if not accommodation:
             return Response({"message": "Accommodation not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         # Check if the requesting user's hostel is equal to the accommodation's hostel
         if request.user.hostel != accommodation.hostel:
             return Response({"detail": "You are not authorized to update this accommodation."}, status=status.HTTP_403_FORBIDDEN)
-         
+
         new_room_id = request.data.get('room', None)
         status_value = request.data.get('status', None)
 
@@ -648,7 +650,7 @@ class UpdateAccommodation(APIView):
             if request.user.user_type not in ['admin', 'staff']:
                 return Response({"message": "You are not authorized to update accommodations."}, status=status.HTTP_403_FORBIDDEN)
             else:
-        
+
                 hostel = Hostels.objects.get(id=accommodation.hostel.id)
                 user_notice = Notice.objects.create(
                     user=accommodation.student,
@@ -676,9 +678,9 @@ class UpdateAccommodation(APIView):
                 notification_type = "accomodation",
                 message=f"Dear Customer Unfortunately Your Accomodation REF ACCOMODATION NO:{accommodation.id} in {hostel.hostel_name} Has Been Cancelled If Not By You It Was By The Hostel Management Please Contact Them For More Information"
             )
-  
+
         if status_value in ['Completed', 'Cancelled']:
- 
+
             hostel = Hostels.objects.get(id=accommodation.hostel.id)
             person = CustomUser.objects.get(id=accommodation.student.id)
             person.hostel = None
@@ -708,10 +710,10 @@ class UpdateAccommodation(APIView):
 
                 new_room = Rooms.objects.filter(room_number=new_room_id, capacity=accommodation.room.capacity, isAvailable=True).first()
                 old_room = accommodation.room
- 
+
             if not new_room:
                 return Response({"detail": "New room is not available or does not match the capacity of the old room."}, status=status.HTTP_400_BAD_REQUEST)
-            
+
             if accommodation.room and accommodation.room.hostel != new_room.hostel:
                 return Response({"detail": "You cannot switch accommodations between hostels."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -721,8 +723,8 @@ class UpdateAccommodation(APIView):
                     old_room = accommodation.room
                     old_room.current_occupancy -= 1
                     old_room.save()
-                
-                
+
+
 
                     new_room.current_occupancy += 1
                     new_room.save()
@@ -732,7 +734,7 @@ class UpdateAccommodation(APIView):
 
         accommodation.status = status_value
         accommodation.save()
-        
+
         return Response({"detail": "Accommodation updated successfully."})
 
 
@@ -741,7 +743,7 @@ import stripe
 from django.conf import settings
 
 
- 
+
 # @permission_classes([IsAuthenticated])
 # class Pay(APIView):
 #     def post(self, request, *args, **kwargs):
@@ -749,13 +751,13 @@ from django.conf import settings
 #         hostel = request.user.hostel
 #         if not hostel:
 #             return Response({"message": "Hostel information not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
 #         # Set the Stripe API key from the hostel's stripe_key or fallback to the default key
 #         # stripe.api_key = hostel.stripe_key if hostel.stripe_key else 'your_stripe_secret_key_here'
-        
+
 #         if request.user.hostel != hostel:
 #             return Response({"message": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
-        
+
 #         prod_id = self.kwargs["pk"]
 
 #         try:
@@ -783,19 +785,19 @@ from django.conf import settings
 #         except Exception as e:
 #             return Response({'msg': 'Something went wrong while creating Stripe session', 'error': str(e)}, status=500)
 
-# 
+#
 #      def post(self, request, *args, **kwargs):
 #         # Get the hostel associated with the user
 #         hostel = request.user.hostel
 #         if not hostel:
 #             return Response({"message": "Hostel information not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
 #         # Set the Stripe API key from the hostel's stripe_key or fallback to the default key
 #         stripe.api_key = hostel.stripe_key
-        
+
 #         if request.user.hostel != hostel:
 #             return Response({"message": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
-        
+
 #         prod_id = self.kwargs["pk"]
 
 #         try:
@@ -894,7 +896,7 @@ from django.conf import settings
 
 #         except Exception as e:
 #             return Response({'msg': 'Something went wrong while creating Stripe session', 'error': str(e)}, status=500)
-        
+
 
 
 from rest_framework.exceptions import ValidationError
@@ -982,7 +984,7 @@ class Pay(APIView):
 
 
 
-        
+
 from django.db.models import F
 
 class PaymentListView(APIView):
@@ -1017,7 +1019,7 @@ class PaymentListView(APIView):
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(payments, request)
-        
+
 
         serializer = PaymentSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)

@@ -20,7 +20,7 @@ import { logout } from '../actions/userAction'
 import AdminCard from '../components/AdminCard';
 import StudentCard from '../components/StudentCard';
 
-
+import Acard from '../components/Acard';
 
 
 
@@ -72,14 +72,14 @@ function Home() {
 
   useEffect(() => {
     if (!userInfo) {
-      navigate("/login")
+      navigate('/forte')
     }
       }, [navigate,userInfo]);
 
 
   const logoutHandler = () => {
     dispatch(logout())
-    navigate('/login')
+    navigate('/forte')
     window.location.reload();
     
   };
@@ -180,7 +180,7 @@ if (hasExpired) {
         message="No results found"
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       />
-
+         
 
       <div className='container text-center'>
         <Row className='justify-content-center'>
@@ -196,7 +196,8 @@ onClick={submiterHandler}
           
           }
 
-          <Typography variant="h5" style={{ fontFamily: "'Playfair Display', serif" }}>ACCOMMODATIONS</Typography>
+{accommodations.lenght > 0 &&      <Typography variant="h5" style={{ fontFamily: "'Playfair Display', serif" }}>ACCOMMODATIONS</Typography>
+}   
           <input
             type='search'
             placeholder='Search Accomodation No'
@@ -289,8 +290,7 @@ NEW!
 
 
         </Row>
-<br/>
-<br/>
+
         {loading ? (
           <Loader />
         ) : accommodations.length > 0 ? (
@@ -304,7 +304,7 @@ NEW!
     alignItems: "center"
   }}
 >
-  <Detail
+  {/* <Detail
     d1={`ACCOMODATION NO: ${accommodation.id}`}
     d2={accommodation.paid ? <span style={{ color: 'green' }}>PAID</span> : <span style={{ color: 'red' }}>NOT PAID</span>}
     d3={"STUDENT ID NUMBER: " + accommodation.person_name}
@@ -315,6 +315,19 @@ NEW!
     style={{ color: 'black' }}
     acc={accommodation}
     showRed={accommodation.status === "Delayed Payment"}
+  /> */}
+  <Acard
+  number={accommodation.id}
+  paid={accommodation.paid ? <span style={{ color: 'green' }}>YES</span> : <span style={{ color: 'red' }}>NO</span>}
+  student_id={accommodation.person_name}
+  room={accommodation.room}
+  status={accommodation.status}
+  price={accommodation.price}
+  link1={`/accom/${accommodation.id}`}
+  showRed={accommodation.status === "Delayed Payment"}
+
+  
+  
   />
 </Row>
 

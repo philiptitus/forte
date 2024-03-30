@@ -104,13 +104,13 @@ const {  user } = userDetails;
 
 useEffect(() => {
   if (!userInfo) {
-    navigate("/login")
+    navigate('/forte')
   }
     }, [navigate,userInfo]);
 
 const logoutHandler = () => {
   dispatch(logout())
-  navigate('/login')
+  navigate('/forte')
   window.location.reload();
   
 };

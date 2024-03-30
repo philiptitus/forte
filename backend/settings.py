@@ -230,6 +230,14 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # SMTP server settings for Google's Gmail
 
 
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587  # Use 465 for SSL
+EMAIL_USE_TLS = True  # Use False for SSL
+EMAIL_USE_SSL = False  # Use True for SSL
+
+# Add your Gmail account credentials
+
+
 # settings.py
 
 

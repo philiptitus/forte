@@ -316,7 +316,10 @@ onSubmit={LoginHandler}
       <input className="un" type="email" required="true" align="center" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
   <input className="pass" type="password" required="true" align="center" placeholder="Password" value={password}  onChange={(e) => setPassword(e.target.value)}/>
 <button className="submit" align="center" type='submit'>Login</button>
-<Link to='/forgot-password'><button className="submit" align="center"> Forgot Password</button></Link>
+<Link to='/forgot-password'>
+  <button className="submit" align="center"> 
+Forgot Password</button>
+</Link>
 
     </form>
     <div className='googleContainer'>

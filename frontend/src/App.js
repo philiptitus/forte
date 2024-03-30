@@ -29,23 +29,35 @@ import OldAccommodation from './screens/OldAccomodation';
 import RegisterStaff from './screens/RegisterStaff';
 import HostelDelete from './screens/hostelDelete';
 import AccommodationForm from './components/AccomodationForm';
-
-
-
+import SignIn from './screens/Sin';
+import LandingPage from './screens/LandingPage';
+import NavBar from './components/NavBar';
+import Reg from './screens/Reg';
 function App() {
   return (
     <Router>
       <SnackbarProvider maxSnack={1}>
-        <Sidebar />
+        {/* <Sidebar /> */}
+        <NavBar/>
 
         <main className='py-4'>
-          <Container>
-          <Row  style={{ textAlign:"center" }} className='justify-content-center'>
+          <Container
+          style={{
+            marginLeft:"40px"
+          }}
+          >
+          {/* <Row  style={{ textAlign:"center" }} className='justify-content-center'>
           <h6 style={{ color:"green",fontFamily: "'Playfair Display', serif", marginLeft:"32px" , marginTop:"50px"}}>FORTE - Hostel Management Systems</h6>
-</Row>
+</Row> */}
             <Routes> 
               <Route path='/' element={< Home/>} />
-              <Route path='/login' element={<Login />} />
+              <Route path='/login' element={<SignIn />} />
+              <Route path='/sin' element={<SignIn />} />
+              <Route path='/reg' element={<Reg />} />
+
+              <Route path='/forte' element={<LandingPage />} />
+
+
               <Route path='/register' element={<RegisterStaff />} />
 
               <Route path='/search' element={<SearchScreen />} />
@@ -79,7 +91,6 @@ function App() {
 
         </main>
       </SnackbarProvider>
-      <Footer/>
     </Router>
     
   );

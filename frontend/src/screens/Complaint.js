@@ -91,14 +91,14 @@ const ComplaintDetail = () => {
   //     }, [navigate]);
   const logoutHandler = () => {
     dispatch(logout())
-    navigate('/login')
+    navigate('/forte')
     window.location.reload();
     
   };
 
   useEffect(() => {
     if (!userInfo) {
-      navigate("/login")
+      navigate('/forte')
     }
       }, [navigate,userInfo]);
 

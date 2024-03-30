@@ -27,6 +27,7 @@ import CustomRating from './Rating';
 import { Snackbar, Typography } from '@mui/material';
 import Divider from '@mui/material';
 import { getUserDetails } from '../actions/userAction';
+import Bcard from './Bcard';
 
 const ratings = [
   { value: '1', label: 'Poor' },
@@ -308,27 +309,7 @@ variant="filled"
   </div>
   <div>
   </div>
-  <div>
-  {ratings.length > 9 &&
 
-<Row className='justify-content-center'>
-<IconButton
-  style={{ 
-    backgroundColor:"black",
-    color: 'green',
-    maxWidth:"40px"
-  
-  }}
-    
-  onClick={handleLoadMore}
-  disabled={loading || page >= totalPages}
->
-  <KeyboardArrowDownIcon />
-</IconButton>
-</Row>
-
-}
-  </div>
 </Box>
 
 
@@ -408,21 +389,25 @@ function ProfileComponents({id, showMaintenance = false, showReviews = false, sh
     
           let response; // Declare response variable
           let results;
+          let total;
 
           if (showMaintenance) {
             const maintenanceResponse = await axios.get(`/api/students/maintenances/?name=${searchText}&page=${page}`, config);
             results = maintenanceResponse.data.results;
+            total = maintenanceResponse.data.total_pages
           } else if (showReviews) {
             const reviewsResponse = await axios.get(`/api/students/reviews/?name=${searchText}&page=${page}`, config);
             results = reviewsResponse.data.results;
+            total = reviewsResponse.data.total_pages
           } else if (showComplain) {
             const complainResponse = await axios.get(`/api/students/complaints/?name=${searchText}&page=${page}`, config);
             results = complainResponse.data.results;
+            total = complainResponse.data.total_pages
           }
           const iterableResults = Array.isArray(results) ? results : [];
     
           setPosts(results);
-          setTotalPages(response.data.total_pages);
+          setTotalPages(total);
         } catch (error) {
           console.error('Error fetching posts:', error);
         } finally {
@@ -435,7 +420,7 @@ function ProfileComponents({id, showMaintenance = false, showReviews = false, sh
     
 
 
-    const handleLoadMore = () => {
+    const handleLoader = () => {
       // Increment the page to fetch the next set of posts
       setPage((prevPage) => prevPage + 1);
     };
@@ -571,17 +556,27 @@ onClick={() => handleButtonClick('Pending')} // Pass your desired word here
             <React.Fragment key={index}>
               {/* Render each post using a Detail component */}
               <Row className='justify-content-center'>
-                <Detail
+                {/* <Detail
                   d1={`ID: ${post.id}`}
                   d2={post.resolved ? <span style={{ color: 'green' }}>RESOLVED</span> : <span style={{ color: 'red' }}>UNRESOLVED</span>}
                   d3={"STUDENT ID NUMBER: " + post.student_name}
                   d4={"DATE: " + formatTimestamp(post.date_raised)}
                   d9={"STATUS: " + post.status}
                   d8={post.description ? `DESCRIPTION: ${post.description}` : `FACILITY: ${post.facility_name}`}
-                  link1={showMaintenance ? `/maintenance/${post.id}` : (showComplain ? `/complaint/${post.id}` : '#')}
                   style={{ color: 'black' }}
                   acc={post}
-                />
+                /> */}
+                <Bcard
+                  link1={showMaintenance ? `/maintenance/${post.id}` : (showComplain ? `/complaint/${post.id}` : '#')}
+                id={post.id}
+                date={formatTimestamp(post.date_raised)}
+                resolved={post.resolved ? <span style={{ color: 'green' }}>RESOLVED</span> : <span style={{ color: 'red' }}>UNRESOLVED</span>}
+                status={post.status}
+                description={post.description}
+                student_id={post.student_name}
+
+
+                  />
               </Row>
               <br />
               <br />
@@ -641,7 +636,8 @@ onClick={() => handleButtonClick('Pending')} // Pass your desired word here
 
 
 
-      
+{loading && <Loader/>}
+    
 {posts.length > 9 &&
 
 <Row className='justify-content-center'>
@@ -653,7 +649,7 @@ onClick={() => handleButtonClick('Pending')} // Pass your desired word here
   
   }}
     
-  onClick={handleLoadMore}
+  onClick={handleLoader}
   disabled={loading || page >= totalPages}
 >
   <KeyboardArrowDownIcon />
@@ -661,7 +657,6 @@ onClick={() => handleButtonClick('Pending')} // Pass your desired word here
 </Row>
 
 }
-{loading && <Loader/>}
     </div>
 </div>
 

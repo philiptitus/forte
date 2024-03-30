@@ -103,7 +103,7 @@ const expirationTime = userInfo?.expiration_time
 
 useEffect(() => {
   if (!userInfo) {
-    navigate("/login")
+    navigate('/forte')
   }
     }, [navigate,userInfo]);
 
@@ -111,7 +111,7 @@ useEffect(() => {
 
 const logoutHandler = () => {
   dispatch(logout())
-  navigate('/login')
+  navigate('/forte')
   window.location.reload();
   
 };

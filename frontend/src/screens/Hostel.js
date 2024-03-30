@@ -42,10 +42,14 @@ import FemaleIcon from '@mui/icons-material/Female';
 import MaleIcon from '@mui/icons-material/Male';
 import CreateRoom from './CreateRoom'
 import RoomForm from '../components/RoomForm';
-import Tab from '@mui/material';
+import Tab from '@mui/material'; 
 import { logout } from '../actions/userAction'
 
 import HostelImageForm from '../components/HostelImageForm';
+
+
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+
 
 
 function MasonryImageList({ itemData , alternative}) {
@@ -65,8 +69,18 @@ function MasonryImageList({ itemData , alternative}) {
               />
             </ImageListItem>
           ))}
+
+
         </ImageList>
       </Box>
+      {itemData.length < 1 && (
+  <Row style={{ textAlign: "center", alignItems: "center" }}>
+    <Col>
+      <h6>No Sample Images For This Hostel</h6>
+    </Col>
+  </Row>
+)}
+
       </div>
 
 
@@ -150,7 +164,7 @@ const {   success:successRoom } = roomCreate;
 
         useEffect(() => {
           if (!userInfo) {
-            navigate("/login")
+            navigate('/forte')
           }
             }, [navigate,userInfo]);
       
@@ -158,7 +172,7 @@ const {   success:successRoom } = roomCreate;
 
         const logoutHandler = () => {
           dispatch(logout())
-          navigate('/login')
+          navigate('/forte')
           window.location.reload();
           
         };
@@ -228,18 +242,11 @@ const {   success:successRoom } = roomCreate;
         
               setLoading(true);
         
-              let response; // Declare response variable
-              let results;
+              const response = await axios.get(`/api/students/reviews/?hostel_id=${hostelB}&page=${page}`, config);
+
+              // Construct the API endpoint URL dynamically based on hostelB        
         
-              // Construct the API endpoint URL dynamically based on hostelB
-              const url = `/api/students/reviews/?hostel_id=${hostelB}&page=${page}`; // Assuming hostelB is a string variable
-        
-              const reviewsResponse = await axios.get(url, config);
-              results = reviewsResponse.data.results;
-        
-              const iterableResults = Array.isArray(results) ? results : [];
-        
-              setPosts((prevPosts) => [...prevPosts, ...iterableResults]);
+              setPosts(response.data.results);
               setTotalPages(response.data.total_pages);
             } catch (error) {
               console.error('Error fetching reviews:', error);
@@ -252,7 +259,9 @@ const {   success:successRoom } = roomCreate;
           fetchData();
         }, [page, searchText, success, hostelB]); // Include hostelB in the dependency array
         
-
+        const handleLoadMore = () => {
+          setPage(prevPage => prevPage + 1);
+        };
 
         const itemData = [
             { img: hostel?.imag1, title: 'Bed' },
@@ -674,6 +683,14 @@ user.user_type === "admin" && user.hostel == id &&
 
 
           </Row>
+          
+
+
+
+
+
+
+
           <br />
           <br />
         </React.Fragment>
@@ -682,6 +699,27 @@ user.user_type === "admin" && user.hostel == id &&
       // If there are no posts, show a message with a link to explore
       <h6>This Hostel Has No Reviews</h6>
     )}
+
+{loading && <Loader/>}
+{posts.length > 9 &&
+
+<Row className='justify-content-center'>
+<IconButton
+  style={{ 
+    backgroundColor:"black",
+    color: 'green',
+    maxWidth:"40px"
+  
+  }}
+    
+  onClick={handleLoadMore}
+  disabled={loading || page >= totalPages}
+>
+  <KeyboardArrowDownIcon />
+</IconButton>
+</Row>
+
+}
 
 
 
@@ -711,7 +749,6 @@ user.user_type === "admin" && user.hostel == id &&
   <Popup component={<HostelImageForm defaultValue={hostel}/>}  icon={EditIcon}  />
 
 }
-
                   </Col> 
                 </Row>
                 <Row className='justify-content-center'>
@@ -761,9 +798,30 @@ user.user_type === "admin" && user.hostel == id &&
       <h6>This Hostel Has No reviews</h6>
     )}
 
+{loading && <Loader/>}
+{posts.length > 9 &&
+
+<Row className='justify-content-center'>
+<IconButton
+  style={{ 
+    backgroundColor:"black",
+    color: 'green',
+    maxWidth:"40px"
+  
+  }}
+    
+  onClick={handleLoadMore}
+  disabled={loading || page >= totalPages}
+>
+  <KeyboardArrowDownIcon />
+</IconButton>
+</Row>
+
+}
+
 <Row className='justify-content-center'>
 
-/</Row>
+</Row>
 
 
 

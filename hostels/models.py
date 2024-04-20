@@ -10,6 +10,10 @@ from django.utils import timezone
 class Hostels(models.Model):
     hostel_name = models.CharField(max_length=100)
     stripe_key = models.CharField(max_length=1000, blank=True, null=True)
+    stripe_webhook = models.CharField(max_length=1000, blank=True, null=True)
+
+
+
     address = models.TextField()
     phone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(max_length=20, blank=True, null=True)

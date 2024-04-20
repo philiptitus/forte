@@ -57,6 +57,9 @@ class HostelCreateView(APIView):
         if existing_hostel_admin:
             return Response({'detail': 'You are already an administrator in another hostel.'}, status=status.HTTP_400_BAD_REQUEST)
         
+        # stripe_webhook = request.data.get("stripe_webhook")
+ 
+
         stripe_key = request.data.get('stripe_key')
         if stripe_key:
             if not self.verify_stripe_key(stripe_key):
@@ -77,6 +80,7 @@ class HostelCreateView(APIView):
             
             new_hostel = Hostels.objects.get(id = hostel.id)
             new_hostel.stripe_key = stripe_key
+            # new_hostel.stripe_webhook = stripe_webhook
             new_hostel.save()
 
             return Response(HostelSerializer(hostel).data, status=status.HTTP_201_CREATED)
@@ -93,6 +97,8 @@ class HostelCreateView(APIView):
         except stripe.error.AuthenticationError:
             # If the request failed due to authentication error (invalid API key), return False
             return False
+
+
 
 
 
@@ -537,7 +543,12 @@ class AccommodationListView(APIView):
             print("Check-out Date:", accommodation.check_out_date)
             print("Current Time:", datetime.now())
 
-            person = CustomUser.objects.get(id=accommodation.student.id)
+
+
+
+
+
+
             person.hostel = None
             person.save()
 
@@ -856,6 +867,8 @@ class EditHostelInfo(APIView):
         # Retrieve updated information from request data
         hostel_name = request.data.get('hostel_name', hostel.hostel_name)
         stripe_key = request.data.get('stripe_key', hostel.stripe_key)
+        # stripe_webhook = request.data.get('stripe_webhook', hostel.stripe_webhook)
+
         address = request.data.get('address', hostel.address)
         phone = request.data.get('phone', hostel.phone)
         print(phone)
@@ -871,7 +884,12 @@ class EditHostelInfo(APIView):
                 return Response({'detail': 'Invalid Stripe API key.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             pass
-            
+
+
+
+    
+        # stripe_webhook = request.data.get("stripe_webhook")
+
         # Check which fields are being updated
         updated_fields = []
         if hostel_name != hostel.hostel_name:
@@ -883,6 +901,9 @@ class EditHostelInfo(APIView):
         
         if stripe_key != hostel.stripe_key:
             updated_fields.append("stripe key")
+
+        # if stripe_webhook != hostel.stripe_webhook:
+        #     updated_fields.append("stripe webhook")
 
 
         if address != hostel.address:
@@ -898,6 +919,10 @@ class EditHostelInfo(APIView):
         hostel.hostel_name = hostel_name
         if stripe_key:
             hostel.stripe_key = stripe_key
+        
+        # if stripe_webhook:
+        #     hostel.stripe_webhook = stripe_webhook
+            
  
         hostel.address = address
         hostel.phone = phone
@@ -929,6 +954,11 @@ class EditHostelInfo(APIView):
         except stripe.error.AuthenticationError:
             # If the request failed due to authentication error (invalid API key), return False
             return False
+
+    
+
+
+
 
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser

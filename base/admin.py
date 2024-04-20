@@ -46,7 +46,7 @@ admin.site.register(Rooms)
 admin.site.register(Maintenance)
 admin.site.register(Facilities)
 admin.site.register(Notice)
-
+admin.site.register(PendingReviews)
 
 
 

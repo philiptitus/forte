@@ -54,6 +54,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from django.db.models import Q
+from allauth.account.views import LoginView
+
 
 
 
@@ -70,6 +72,36 @@ from rest_framework.pagination import PageNumberPagination
 
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from django.db.models import Q
+
+from django.shortcuts import render
+from rest_framework.generics import GenericAPIView
+from base.serializers import GoogleSignInSerializer
+from rest_framework.response import Response
+from rest_framework import status
+
+# Create your views here.
+
+class GoogleOauthSignInview(GenericAPIView):
+    serializer_class=GoogleSignInSerializer
+
+    def post(self, request):
+        serializer=self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data=((serializer.validated_data)['access_token'])
+        return Response(data, status=status.HTTP_200_OK) 
+        
+
+
+
+class MyLoginView(TokenObtainPairView):
+        serializer_class = MyTokenObtainPairSerializer
+
+        # No need for JWT authentication logic here
+        # No need to generate JWT token or expiration time
+        
+        # Return the default response provided by the parent class
+
+
 
 @permission_classes([IsAuthenticated])
 class GetUsersView(APIView):
@@ -329,7 +361,7 @@ class RegisterUser(APIView):
             fields_to_check = ['name', 'email', 'password']
             email_message = "Welcome to FORTE! We hope you enjoy our services Be Sure To Verify Your Account Or You Will Not Get Your Account Back When You Lose Your Password"
         elif user_type == 'staff':
-            abslink = "https://fortebyphil.pythonanywhere.com/#/forgot-password/"
+            abslink = "http://localhost:3000/#/forgot-password/"
             fields_to_check = ['name', 'email', 'password']
             email_message = f"You have been invited as a staff member at a FORTE hostel. Go Here: {abslink} and enter your Email to Reset Your Password and then log in with Your New Password."
         elif user_type == 'student':

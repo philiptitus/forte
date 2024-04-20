@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from base.views.student_views import *
 
   # Fix the import
 
@@ -29,6 +30,8 @@ urlpatterns = [
     path('api/users/', include('base.urls.user_urls')),
     path('api/students/', include('base.urls.student_urls')),
     path('api/hostels/', include('base.urls.hostel_urls')),
+    # path('webhooks/stripe/', stripe_webhook, name='stripe-webhook'),
+
 
 
 

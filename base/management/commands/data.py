@@ -1,44 +1,39 @@
 import random
-from faker import Faker
 from django.utils import timezone
-from base.models import CustomUser
+from faker import Faker
+from base.models import Reviews, CustomUser
 from hostels.models import *
 
-
+# Initialize Faker
 fake = Faker()
 
-# Get the student with ID 2
-student = CustomUser.objects.get(pk=2)
+# Get existing hostels and custom users
+hostels = Hostels.objects.all()
+users = CustomUser.objects.all()
 
-# Get existing hostels, rooms, and facilities
-existing_hostels = Hostels.objects.all()
-existing_rooms = Rooms.objects.all()
-existing_facilities = Facilities.objects.all()
+# Define max review length
+max_review_length = 25
 
-# Choices for maintenance status
-status_choices = ['Pending', 'In Progress', 'Completed']
-
-# Generate maintenance requests
-for _ in range(15):
-    # Randomly choose a hostel, room, and facility
-    hostel = random.choice(existing_hostels)
-    room = random.choice(existing_rooms.filter(hostel=hostel))
-    facility = random.choice(existing_facilities)
+# Create 1000 reviews
+for _ in range(1000):
+    # Choose a random hostel and user
+    hostel = random.choice(hostels)
+    user = random.choice(users)
     
-    # Randomly choose status
-    status = random.choice(status_choices)
+    # Generate a fake review with random length
+    review = fake.text(max_nb_chars=max_review_length)
     
-    # Create maintenance request
-    maintenance_request = Maintenance.objects.create(
-        student=student,
+    # Generate a random rating between 1 and 5
+    rating = random.randint(1, 5)
+    
+    # Create the review instance
+    review_instance = Reviews.objects.create(
         hostel=hostel,
-        room=room,
-        facility=facility,
-        status=status,
-        date_raised=fake.date_time_between(start_date='-1y', end_date='now'),
-        resolved=status == 'Completed',
-        date_resolved=fake.date_time_between(start_date='-1y', end_date='now') if status == 'Completed' else None
+        user=user,
+        review=review,
+        rating=rating,
+        date_created=timezone.now()
     )
-    maintenance_request.save()
+    print(f"Review created: {review_instance}")
 
-print("Maintenance requests created successfully.")
+print("Reviews creation completed.")

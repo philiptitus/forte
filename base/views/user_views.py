@@ -32,10 +32,10 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         for k, v in serializer.items():
             data[k] = v
 
-        
+
 
         return data
-    
+
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -66,7 +66,7 @@ from django.db.models import Case, When, Value, IntegerField
 
 from django.db.models import Q, F
 from rest_framework.pagination import PageNumberPagination
-from ..permissions import * 
+from ..permissions import *
 
 from rest_framework.pagination import PageNumberPagination
 
@@ -75,21 +75,10 @@ from django.db.models import Q
 
 from django.shortcuts import render
 from rest_framework.generics import GenericAPIView
-from base.serializers import GoogleSignInSerializer
 from rest_framework.response import Response
 from rest_framework import status
 
 # Create your views here.
-
-class GoogleOauthSignInview(GenericAPIView):
-    serializer_class=GoogleSignInSerializer
-
-    def post(self, request):
-        serializer=self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data=((serializer.validated_data)['access_token'])
-        return Response(data, status=status.HTTP_200_OK) 
-        
 
 
 
@@ -98,7 +87,7 @@ class MyLoginView(TokenObtainPairView):
 
         # No need for JWT authentication logic here
         # No need to generate JWT token or expiration time
-        
+
         # Return the default response provided by the parent class
 
 
@@ -109,7 +98,7 @@ class GetUsersView(APIView):
         # Check if the requesting user is either admin or staff
         if request.user.user_type not in ['admin']:
             return Response({'detail': 'Only Admins or Staff members are allowed to view users.'}, status=status.HTTP_403_FORBIDDEN)
-        
+
         # Fetch all users
         users = Userr.objects.all()
 
@@ -152,17 +141,17 @@ class GetUserById(APIView):
         # Check if the requesting user is the same as the requested user
         if request.user.id == user.id:
             return Response(serializer.data)
-        
+
         # Check if the requesting user is staff or admin
         if request.user.user_type in ['staff', 'admin']:
             # Check if request user's hostel matches the user's hostel
             if request.user.hostel == user.hostel:
                 return Response(serializer.data)
-        
+
         # Check if the requesting user is a student and is trying to access themselves
         if request.user.user_type == 'student' and request.user.id == user.id:
             return Response(serializer.data)
-        
+
         # If none of the conditions are met, raise PermissionDenied
         raise PermissionDenied("You do not have permission to access this user's profile.")
 
@@ -185,7 +174,7 @@ class UserNotices(APIView):
         paginator = PageNumberPagination()
         paginator.page_size = 10  # Set the number of posts per page
         result_page = paginator.paginate_queryset(notices, request)
-        
+
 
         # Serialize the notices
         serializer = NoticeSerializer(result_page, many=True)
@@ -219,9 +208,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 
 from django.contrib.auth.validators import UnicodeUsernameValidator
- 
+
 from django.core.validators import validate_email
- 
+
 
 
 # class RegisterUser(APIView):
@@ -239,7 +228,7 @@ from django.core.validators import validate_email
 #             email_message = "Welcome to FORTE! We hope you enjoy our services Be Sure To Confirm Your Email Or You Will Not Get Your Account Back When You Lose Your Password"
 #         elif user_type == 'staff':
 #             abslink = "http://localhost:3000/#/forgot-password/"
- 
+
 #             fields_to_check = ['name', 'email', 'password', 'date_of_birth', 'gender', 'address', 'Id_number']
 #             email_message = f"You have been invited as a staff member at a FORTE hostel. Go Here: {abslink} and enter your Email to Reset Your Password and then log in with Your New Password."
 
@@ -248,7 +237,7 @@ from django.core.validators import validate_email
 #             email_message = "Welcome to FORTE! We hope you enjoy our services."
 #         else:
 #             return Response({'detail': 'Invalid user type.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
 
 #         # Check if all required fields are present
 #         for field in fields_to_check:
@@ -321,7 +310,7 @@ class RegisterUser(APIView):
         user_type = data.get('user_type')
         if not user_type:
             return Response({'detail': 'User type not provided.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         gender = data.get('gender')
         Id_number = data.get('Id_number')
 
@@ -330,7 +319,7 @@ class RegisterUser(APIView):
                 return Response({'detail': 'Students must provide a gender.'}, status=status.HTTP_400_BAD_REQUEST)
             if not Id_number:
                 return Response({'detail': 'Students must provide Their Id Numbers.'}, status=status.HTTP_400_BAD_REQUEST)
-             
+
             if not Id_number.isdigit() or len(Id_number) != 8:
                 return Response({'detail': 'Invalid ID number. It must have exactly 8 digits.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -345,7 +334,7 @@ class RegisterUser(APIView):
         if user_type == 'staff':
              if not Id_number:
                 return Response({'detail': 'You must provide An Id Number.'}, status=status.HTTP_400_BAD_REQUEST)
-             
+
              if not Id_number.isdigit() or len(Id_number) != 8:
                 return Response({'detail': 'Invalid ID number. It must have exactly 8 digits.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -361,7 +350,7 @@ class RegisterUser(APIView):
             fields_to_check = ['name', 'email', 'password']
             email_message = "Welcome to FORTE! We hope you enjoy our services Be Sure To Verify Your Account Or You Will Not Get Your Account Back When You Lose Your Password"
         elif user_type == 'staff':
-            abslink = "http://localhost:3000/#/forgot-password/"
+            abslink = "https://fortebyphil.pythonanywhere.com/#/forgot-password/"
             fields_to_check = ['name', 'email', 'password']
             email_message = f"You have been invited as a staff member at a FORTE hostel. Go Here: {abslink} and enter your Email to Reset Your Password and then log in with Your New Password."
         elif user_type == 'student':
@@ -436,7 +425,7 @@ class RegisterUser(APIView):
 
 
 
-@permission_classes([IsAuthenticated]) 
+@permission_classes([IsAuthenticated])
 
 
 class GetUserProfile(APIView):
@@ -447,7 +436,7 @@ class GetUserProfile(APIView):
 
 
         return Response(serializer.data)
-    
+
 
 class UpdateUserProfile(APIView):
 
@@ -457,7 +446,7 @@ class UpdateUserProfile(APIView):
         data = request.data
 
         new_email = data.get('email')
- 
+
         # Check if email is being updated to an existing email
         if new_email and CustomUser.objects.exclude(pk=user.pk).filter(email=new_email).exists():
             return Response({'detail': 'User with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -518,14 +507,14 @@ class deleteAccount(APIView):
                 accomodation_ids = ", ".join(str(accomodation.id) for accomodation in pending_Accomodations)
                 detail_message = f"You cannot Delete Your Account as because there are still active accomodations in your hostel:  REF ACCOMODATION NO(S): {accomodation_ids}."
                 return Response({"detail": detail_message}, status=status.HTTP_400_BAD_REQUEST)
-  
+
             if user_for_deletion.hostel:
                 hostel = Hostels.objects.get(id = user_for_deletion.hostel.id)
                 staff = CustomUser.objects.filter(user_type = "staff", hostel=hostel)
-                staff_list = list(staff) 
+                staff_list = list(staff)
                 for s in staff_list:
                     s.delete()
- 
+
                 # Delete the Hostel object
                 user_for_deletion.hostel.delete()
             # Delete the user
@@ -541,7 +530,7 @@ class deleteAccount(APIView):
             # Check for active or delayed payment accommodations for the student
             if Accommodations.objects.filter(student=user_for_deletion, status__in=['Active', 'Delayed Payment']).exists():
                 raise PermissionDenied("There are still active or delayed payment accommodations for you.")
-            
+
             # Delete the user
             user_for_deletion.delete()
             return Response("The user was deleted successfully")
@@ -559,7 +548,7 @@ class PasswordResetRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         return Response({'message':'we have sent you a link to reset your password'}, status=status.HTTP_200_OK)
         # return Response({'message':'user with that email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 
 
@@ -630,7 +619,7 @@ class VerifyUserEmail(GenericAPIView):
             print(passcode)
             user_pass_obj=OneTimePassword.objects.get(otp=passcode)
             user=user_pass_obj.user
-            
+
             if not user.is_verified:
                 user.is_verified=True
                 user.save()
@@ -640,16 +629,16 @@ class VerifyUserEmail(GenericAPIView):
             return Response({'detail':'passcode is invalid user is already verified'}, status=status.HTTP_204_NO_CONTENT)
         except OneTimePassword.DoesNotExist as identifier:
             return Response({'detail':'passcode invalid'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
 
 
 @permission_classes([IsAuthenticated])
-class RemoveStaff(APIView): 
+class RemoveStaff(APIView):
     def delete(self, request, pk):
         # Check if the request user type is admin
         if request.user.user_type != 'admin':
             return Response({"message": "You are not authorized to remove staff."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         # Get user_id from request dataFar
 
         # Check if the user with the provided ID exists and is a staff member
@@ -659,13 +648,13 @@ class RemoveStaff(APIView):
                 return Response({"message": "The provided user is not a staff member."}, status=status.HTTP_400_BAD_REQUEST)
         except CustomUser.DoesNotExist:
             return Response({"message": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         # Check if the administrator's hostel matches the user's hostel
         if request.user.hostel != user.hostel:
             return Response({"message": "You are not authorized to remove staff from this hostel."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         # Update the user's user_type to 'student' and reset the hostel field to null
 
-        user.delete() 
+        user.delete()
 
         return Response({"message": "Staff removed successfully."}, status=status.HTTP_200_OK)

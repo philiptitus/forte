@@ -27,7 +27,7 @@ DEBUG = True
 
 #CHANGEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['Fortebyphil.pythonanywhere.com']
 
 
 # Application definition
@@ -108,7 +108,7 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
 
     'corsheaders.middleware.CorsMiddleware',
-    
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -118,7 +118,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
 
-    
+
 ]
 
 
@@ -237,13 +237,4 @@ FAIL_URL='https://fortebyphil.pythonanywhere.com/'
 
 
 
-
-
-
-
-
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend'
-]
 

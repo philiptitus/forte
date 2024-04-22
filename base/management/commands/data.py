@@ -1,39 +1,44 @@
 import random
-from django.utils import timezone
 from faker import Faker
-from base.models import Reviews, CustomUser
+from django.utils import timezone
+from base.models import CustomUser
 from hostels.models import *
 
-# Initialize Faker
+
 fake = Faker()
 
-# Get existing hostels and custom users
-hostels = Hostels.objects.all()
-users = CustomUser.objects.all()
+# Get the student with ID 2
+student = CustomUser.objects.get(pk=2)
 
-# Define max review length
-max_review_length = 25
+# Get existing hostels, rooms, and facilities
+existing_hostels = Hostels.objects.all()
+existing_rooms = Rooms.objects.all()
+existing_facilities = Facilities.objects.all()
 
-# Create 1000 reviews
-for _ in range(1000):
-    # Choose a random hostel and user
-    hostel = random.choice(hostels)
-    user = random.choice(users)
+# Choices for maintenance status
+status_choices = ['Pending', 'In Progress', 'Completed']
+
+# Generate maintenance requests
+for _ in range(15):
+    # Randomly choose a hostel, room, and facility
+    hostel = random.choice(existing_hostels)
+    room = random.choice(existing_rooms.filter(hostel=hostel))
+    facility = random.choice(existing_facilities)
     
-    # Generate a fake review with random length
-    review = fake.text(max_nb_chars=max_review_length)
+    # Randomly choose status
+    status = random.choice(status_choices)
     
-    # Generate a random rating between 1 and 5
-    rating = random.randint(1, 5)
-    
-    # Create the review instance
-    review_instance = Reviews.objects.create(
+    # Create maintenance request
+    maintenance_request = Maintenance.objects.create(
+        student=student,
         hostel=hostel,
-        user=user,
-        review=review,
-        rating=rating,
-        date_created=timezone.now()
+        room=room,
+        facility=facility,
+        status=status,
+        date_raised=fake.date_time_between(start_date='-1y', end_date='now'),
+        resolved=status == 'Completed',
+        date_resolved=fake.date_time_between(start_date='-1y', end_date='now') if status == 'Completed' else None
     )
-    print(f"Review created: {review_instance}")
+    maintenance_request.save()
 
-print("Reviews creation completed.")
+print("Maintenance requests created successfully.")

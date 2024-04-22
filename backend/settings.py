@@ -27,7 +27,7 @@ DEBUG = True
 
 #CHANGEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-ALLOWED_HOSTS = ['Fortebyphil.pythonanywhere.com']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -108,7 +108,7 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
 
     'corsheaders.middleware.CorsMiddleware',
-
+    
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -118,7 +118,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
 
-
+    
 ]
 
 
@@ -231,10 +231,31 @@ EMAIL_USE_TLS = True  # Use False for SSL
 EMAIL_USE_SSL = False  # Use True for SSL
 
 # Add your Gmail account credentials
+EMAIL_HOST_USER = 'mrptjobs@gmail.com'
+EMAIL_HOST_PASSWORD = 'mjtu mmwo srdx mrty'
+
 
 SITE_URL='https://fortebyphil.pythonanywhere.com/'
 FAIL_URL='https://fortebyphil.pythonanywhere.com/'
 
 
 
+
+
+
+
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend'
+]
+
+SOCIALACCOUNT_PROVIDERS = {}
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_EMAIL_REQUIRED = True
+LOGIN_REDIRECT_URL = '/#/forte'
+
+GOOGLE_CLIENT_ID="396214558664-ghb7mkocs7p3t17ujemjklstu6p3m1vn.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="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"
+SOCIAL_AUTH_PASSWORD="jgk348030gjw03"
 

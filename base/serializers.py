@@ -1,4 +1,3 @@
-
 from rest_framework import serializers
 from .models import CustomUser as Userr
 from .models import *
@@ -21,6 +20,36 @@ from rest_framework import serializers
 from django.conf import settings
 from rest_framework.exceptions import AuthenticationFailed
 from .utils import *
+from rest_framework import serializers
+from .utils import Google, register_social_user
+from django.conf import settings
+from rest_framework.exceptions import AuthenticationFailed
+
+
+class GoogleSignInSerializer(serializers.Serializer):
+    access_token=serializers.CharField(min_length=6)
+
+
+    def validate_access_token(self, access_token):
+        google_user_data=Google.validate(access_token)
+        try:
+            user_data = google_user_data["sub"]
+            
+        except:
+            print("expired token")
+            raise serializers.ValidationError("this token has expired or invalid please try again")
+        
+        if google_user_data['aud'] != settings.GOOGLE_CLIENT_ID:
+                print("could not verify")
+                raise AuthenticationFailed('Could not verify user.')
+
+        email=google_user_data['email']
+        first_name=google_user_data['given_name']
+        last_name=google_user_data['family_name']
+        provider='google'
+
+        return register_social_user(provider, email, first_name, last_name)
+
 
 
 
@@ -112,6 +141,8 @@ class UserSerializerWithToken(UserSerializer):
 
     def get_token(self, obj):
         token = RefreshToken.for_user(obj)
+        print("Your Token is:", token)
+
         return str(token.access_token)
 
     def get_expiration_time(self, obj):
@@ -244,7 +275,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
                 uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
                 token = PasswordResetTokenGenerator().make_token(user)
                 request = self.context.get('request')
-                abslink = f"https://fortebyphil.pythonanywhere.com/#/password-reset-confirm/{uidb64}/{token}/"
+                abslink = f"http://localhost:3000/#/password-reset-confirm/{uidb64}/{token}/"
                 print(abslink)
                 email_body = f"Hi {user.first_name}, use the link below to reset your password: {abslink} Hurry Up The Link Expires in Two Minutes"
                 data = {
@@ -258,6 +289,9 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         else:
 
              raise serializers.ValidationError({'detail': "This account is not verified. Sorry, we cannot help you."})
+
+
+
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -311,12 +345,5 @@ class SetNewPasswordSerializer(serializers.Serializer):
             return user
         except Exception as e:
             raise AuthenticationFailed("Link is invalid or has expired")
-
-
-
-
-
-
-
 
 

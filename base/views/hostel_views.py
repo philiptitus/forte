@@ -57,7 +57,7 @@ class HostelCreateView(APIView):
         if existing_hostel_admin:
             return Response({'detail': 'You are already an administrator in another hostel.'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # stripe_webhook = request.data.get("stripe_webhook")
+        stripe_webhook = request.data.get("stripe_webhook")
  
 
         stripe_key = request.data.get('stripe_key')
@@ -80,7 +80,7 @@ class HostelCreateView(APIView):
             
             new_hostel = Hostels.objects.get(id = hostel.id)
             new_hostel.stripe_key = stripe_key
-            # new_hostel.stripe_webhook = stripe_webhook
+            new_hostel.stripe_webhook = stripe_webhook
             new_hostel.save()
 
             return Response(HostelSerializer(hostel).data, status=status.HTTP_201_CREATED)
@@ -97,8 +97,7 @@ class HostelCreateView(APIView):
         except stripe.error.AuthenticationError:
             # If the request failed due to authentication error (invalid API key), return False
             return False
-
-
+        
 
 
 
@@ -997,6 +996,50 @@ class UploadImage(APIView):
         except Exception as e:
             logger.error(f'Error uploading images: {str(e)}')
             return Response({'detail': 'Internal Server Error'}, status=500)
+
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+
+class ResetHostelImage(APIView):
+    def post(self, request):
+        try:
+            # Retrieve the hostel object
+            hostel_id = request.user.hostel.id
+            hostel = get_object_or_404(Hostels, id=hostel_id)
+
+            # Check permission (assuming permission logic remains the same)
+            if request.user != hostel.administrator:
+                return Response({'detail': 'You are not authorized to reset images for this hostel.'}, status=403)
+            
+            image_field_name = request.data.get('imag')
+            print(image_field_name)
+
+            # Check if the image field name is valid
+            if image_field_name not in ['imag1', 'imag2', 'imag3', 'imag4', 'imag5', 'imag6', 'imag7', 'imag8', 'imag9', 'imag10', 'imag11']:
+                print("Invalid Field Name")
+                return Response({'detail': 'Invalid image field name'}, status=400)
+
+            setattr(hostel, image_field_name, None)
+
+            hostel.save()
+
+
+
+
+            return Response({'detail': 'Image was reset successfully'})
+        except Exception as e:
+            logger.error(f'Error resetting image: {str(e)}')
+            print("Internal server error")
+
+            return Response({'detail': 'Internal Server Error'}, status=500)
+
+
+
 
 
 class DeleteNoticeAPIView(APIView):

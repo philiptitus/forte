@@ -5,7 +5,9 @@ from ..views.user_views import *
 urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('accounts/login/', MyLoginView.as_view(), name='account_login'),
+    path('google/', GoogleOauthSignInview.as_view(), name='google'),
 
+    path('reset/', ResetImage.as_view(), name='image-reset'),
 
     path('upload/', uploadImage.as_view(), name='image-upload'),
     path('login/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),

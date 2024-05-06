@@ -1,44 +1,60 @@
 import random
 from faker import Faker
 from django.utils import timezone
-from base.models import CustomUser
+from base.models import *
 from hostels.models import *
 
+from faker import Faker
+import random
 
-fake = Faker()
+def create_fake_data():
+    # Create Faker instance
+    fake = Faker()
 
-# Get the student with ID 2
-student = CustomUser.objects.get(pk=2)
+    # Get the CustomUser model
+    User = CustomUser
 
-# Get existing hostels, rooms, and facilities
-existing_hostels = Hostels.objects.all()
-existing_rooms = Rooms.objects.all()
-existing_facilities = Facilities.objects.all()
+    # Create 30 users of type "student" and assign them to hostel with ID 1
+    users = []
+    for _ in range(30):
+        email = fake.email()
 
-# Choices for maintenance status
-status_choices = ['Pending', 'In Progress', 'Completed']
+        user = User.objects.create(
+            username=email,  # Use email as the username
 
-# Generate maintenance requests
-for _ in range(15):
-    # Randomly choose a hostel, room, and facility
-    hostel = random.choice(existing_hostels)
-    room = random.choice(existing_rooms.filter(hostel=hostel))
-    facility = random.choice(existing_facilities)
-    
-    # Randomly choose status
-    status = random.choice(status_choices)
-    
-    # Create maintenance request
-    maintenance_request = Maintenance.objects.create(
-        student=student,
-        hostel=hostel,
-        room=room,
-        facility=facility,
-        status=status,
-        date_raised=fake.date_time_between(start_date='-1y', end_date='now'),
-        resolved=status == 'Completed',
-        date_resolved=fake.date_time_between(start_date='-1y', end_date='now') if status == 'Completed' else None
-    )
-    maintenance_request.save()
+            email=fake.email(),
+            hostel_id=1,  # Assign to hostel with ID 1
+            user_type='student'
+        )
+        users.append(user)
 
-print("Maintenance requests created successfully.")
+    # Create 30 active accommodations for the created users in hostel with ID 1
+    accommodations = []
+    for user in users:
+        accommodation = Accommodations.objects.create(
+            student=user,
+            hostel_id=1,  # Assign to hostel with ID 1
+            check_in_date=fake.date_between(start_date='-1y', end_date='today'),
+            status='Active',
+        )
+        accommodations.append(accommodation)
+
+    # Create 50 rooms for hostel with ID 1
+    rooms = []
+    for _ in range(50):
+        room = Hostels.objects.create(
+            capacity=random.choice(['1', '2', '4']),
+            current_occupancy=0,
+        )
+        rooms.append(room)
+
+    # Randomly assign accommodations to rooms
+    for accommodation in accommodations:
+        random_room = random.choice(rooms)
+        accommodation.room = random_room
+        accommodation.save()
+
+    print("Fake data created successfully!")
+
+# Call the function to create fake data
+create_fake_data()

@@ -33,24 +33,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from ..serializers import *
 import stripe
+from django.conf import settings
 
 class HostelCreateView(APIView):
     def post(self, request):
-        # Check if the user is a staff
-        if request.user.user_type == 'staff':
-            return Response({'detail': 'You have to create a new account to continue.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check if the user is a student
-        if request.user.user_type == 'student':
-            # Check if there are any accommodations for the student
-            if Accommodations.objects.filter(student=request.user).exists():
-                return Response({'detail': 'You have to create a new account to continue.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check if the user is an admin
+        # Check if the user is a staff or student
         if request.user.user_type != 'admin':
-            # Change user_type to 'admin' immediately
-            request.user.user_type = 'admin'
-            request.user.save()
+            return Response({'detail': 'You have to create a new account to continue.'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if the user is already an administrator in another hostel
         existing_hostel_admin = Hostels.objects.filter(administrator=request.user).exists()
@@ -58,10 +47,21 @@ class HostelCreateView(APIView):
             return Response({'detail': 'You are already an administrator in another hostel.'}, status=status.HTTP_400_BAD_REQUEST)
         
         stripe_webhook = request.data.get("stripe_webhook")
- 
 
-        stripe_key = request.data.get('stripe_key')
-        if stripe_key:
+        # Get demo_secret from request data, default to False
+        demo_secret = request.data.get("demo_secret", False)
+
+        # If demo_secret is True, use STRIPE_SECRET_KEY from settings
+        if demo_secret:
+            stripe_key = settings.STRIPE_SECRET_KEY
+        else:
+            # Otherwise, get stripe_key from request data
+            stripe_key = request.data.get('stripe_key')
+            # Ensure stripe_key is provided in the request data
+            if not stripe_key:
+                return Response({'detail': 'Stripe API key is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Verify the provided stripe_key
             if not self.verify_stripe_key(stripe_key):
                 return Response({'detail': 'Invalid Stripe API key.'}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -78,7 +78,7 @@ class HostelCreateView(APIView):
             request.user.hostel = hostel
             request.user.save()
             
-            new_hostel = Hostels.objects.get(id = hostel.id)
+            new_hostel = Hostels.objects.get(id=hostel.id)
             new_hostel.stripe_key = stripe_key
             new_hostel.stripe_webhook = stripe_webhook
             new_hostel.save()
@@ -97,7 +97,7 @@ class HostelCreateView(APIView):
         except stripe.error.AuthenticationError:
             # If the request failed due to authentication error (invalid API key), return False
             return False
-        
+    
 
 
 

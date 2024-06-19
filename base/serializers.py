@@ -20,6 +20,11 @@ from rest_framework import serializers
 from django.conf import settings
 from rest_framework.exceptions import AuthenticationFailed
 from .utils import *
+from rest_framework import serializers
+from .utils import  register_social_user
+from django.conf import settings
+from rest_framework.exceptions import AuthenticationFailed
+
 
 
 
@@ -107,10 +112,13 @@ class UserSerializerWithToken(UserSerializer):
 
     class Meta:
         model = Userr
-        fields = ['id', '_id', 'username', 'email', 'name', 'isAdmin', 'bio', 'token', 'expiration_time']
+        # fields = ['id', '_id', 'username', 'email', 'name', 'isAdmin', 'bio', 'token', 'expiration_time']
+        fields = '__all__'
 
     def get_token(self, obj):
         token = RefreshToken.for_user(obj)
+        print("Your Token is:", token)
+
         return str(token.access_token)
 
     def get_expiration_time(self, obj):
@@ -196,11 +204,19 @@ class AccomodationsSerializer(serializers.ModelSerializer):
         return obj.student.Id_number if obj.student else None
  
 
+
 class RoomSerializer(serializers.ModelSerializer):
+    students = serializers.SerializerMethodField()
+
+    def get_students(self, room):
+        accommodations = Accommodations.objects.filter(room=room, status__in=['Active', 'Delayed Payment'])
+        students = [accommodation.student for accommodation in accommodations]
+        student_serializer = UserSerializer(students, many=True)
+        return student_serializer.data
+
     class Meta:
         model = Rooms
         fields = '__all__'
-
 
 class NoticeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -227,36 +243,39 @@ class PaymentSerializer(serializers.ModelSerializer):
  
 
 
-
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=255)
 
     def validate(self, attrs):
         email = attrs.get('email')
-        user = Userr.objects.get(email=email)
+        try:
+            user = Userr.objects.get(email=email)
+        except Userr.DoesNotExist:
+            raise serializers.ValidationError({'detail': "No user is associated with this email address."})
+        
         if user.is_verified:
-
-            
-
-            if Userr.objects.filter(email=email).exists():
-
-                uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
-                token = PasswordResetTokenGenerator().make_token(user)
-                request = self.context.get('request')
-                abslink = f"http://localhost:3000/#/password-reset-confirm/{uidb64}/{token}/"
-                print(abslink)
-                email_body = f"Hi {user.first_name}, use the link below to reset your password: {abslink} Hurry Up The Link Expires in Two Minutes"
-                data = {
-                    'email_body': email_body,
-                    'email_subject': "Reset your Password",
-                    'to_email': user.email
-                }
-                send_normal_email(data)
+            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+            token = PasswordResetTokenGenerator().make_token(user)
+            request = self.context.get('request')
+            abslink = f"http://localhost:3000/authentication/password-reset-confirm?uid={uidb64}&token={token}"
+            print(abslink)
+            email_body = (
+                f"Hi {user.first_name},\n\n"
+                f"Use the link below to reset your password:\n"
+                f"{abslink}\n\n"
+                f"Hurry up! The link expires in two minutes."
+            )
+            data = {
+                'email_body': email_body,
+                'email_subject': "Reset your Password",
+                'to_email': user.email
+            }
+            send_normal_email(data)
 
             return attrs
         else:
+            raise serializers.ValidationError({'detail': "This account is not verified. Sorry, we cannot help you."})
 
-             raise serializers.ValidationError({'detail': "This account is not verified. Sorry, we cannot help you."})
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError

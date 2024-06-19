@@ -33,6 +33,11 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -60,8 +65,8 @@ from datetime import timedelta
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=10),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
@@ -111,6 +116,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
+
     
 ]
 
@@ -227,17 +234,31 @@ EMAIL_USE_SSL = False  # Use True for SSL
 EMAIL_HOST_USER = 'mrptjobs@gmail.com'
 EMAIL_HOST_PASSWORD = 'mjtu mmwo srdx mrty'
 
-# STRIPE_SECRET_KEY="sk_test_51OhqkMJmQ4PCHWyUin1CxNM30U1cblIaZuXRXWLqy3pTEjvMIsnnLUftEn2BcDFOeDEl6rZ9XYA7iObcyDDEDgxN00sd91jTVT"
 
-SITE_URL='http://localhost:3000/'
-
-
-# Additional settings (optional)
-# EMAIL_TIMEOUT = 5  # Set a timeout value if needed
-# DEFAULT_FROM_EMAIL = 'your_default_email@gmail.com'
-# SERVER_EMAIL = 'your_server_email@gmail.com'
-
-# settings.py
+SITE_URL='https://fortebyphil.pythonanywhere.com/'
+FAIL_URL='https://fortebyphil.pythonanywhere.com/'
 
 
 
+CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'https://fortefront.onrender.com', 'https://*.127.0.0.1']
+CORS_ALLOW_CREDENTIALS = True 
+
+
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend'
+]
+
+
+
+SOCIALACCOUNT_PROVIDERS = {}
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_EMAIL_REQUIRED = True
+LOGIN_REDIRECT_URL = '/#/forte'
+
+GOOGLE_CLIENT_ID="396214558664-ghb7mkocs7p3t17ujemjklstu6p3m1vn.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="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"
+SOCIAL_AUTH_PASSWORD="jgk348030gjw03"
+
+STRIPE_SECRET_KEY = 'sk_test_51OhqkMJmQ4PCHWyUdWonmoBsZQhJWiWkxtwnbtPZpyawBcyAIMHyrcoY03L305ZEfSLnXguU90RuIlPiNuF2vYRf006ja6rOM0'

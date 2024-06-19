@@ -49,7 +49,7 @@ class AccommodationCreateView(APIView):
             print(f"Duration: {duration}")
             print(f"Hostel Gender: {hostel.gender}")
             print(f"User Gender: {request.user.gender}")
-
+            print(request.data)
             if hostel.gender != request.user.gender:
                 return Response({'detail': 'This Hostel Is Not Your Gender'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -594,7 +594,9 @@ class UpdateComplaintStatus(APIView):
             return Response({"message": "You are not authorized to update this complaint."}, status=status.HTTP_403_FORBIDDEN)
         
         status_value = request.data.get('status', None)
+        print(status_value) 
         if not status_value:
+
             return Response({"message": "Status not provided."}, status=status.HTTP_400_BAD_REQUEST)
         
         if status_value == 'In Progress':
@@ -623,6 +625,7 @@ class UpdateAccommodation(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        print(request.data)
         # Check if the request user type is admin or staff
         # if request.user.user_type not in ['admin', 'staff']:
         #     return Response({"message": "You are not authorized to update accommodations."}, status=status.HTTP_403_FORBIDDEN)
@@ -899,6 +902,92 @@ from django.conf import settings
 
 from rest_framework.exceptions import ValidationError
 
+
+
+# class Pay(APIView):
+#     def post(self, request, *args, **kwargs):
+#         prod_id = self.kwargs["pk"]
+#         try:
+#             product = Accommodations.objects.get(id=prod_id)
+#             hostel = Hostels.objects.get(id=product.hostel.id)
+
+#             # Check if hostel has a stripe key
+#             if not hostel.stripe_key:
+#                 raise ValidationError("This hostel does not support payments at the moment.")
+
+#             stripe.api_key = hostel.stripe_key
+#             product.paid = True
+#             product.status = 'Active'
+#             product.save()
+
+#             # Create a Payments object
+#             payment_description = f"Payment for accommodation {product.id} by {product.student.username} at {timezone.now()}."
+#             payment = Payments.objects.create(
+#                 user=product.student,
+#                 hostel=product.hostel,
+#                 accommodation=product,
+#                 type='accommodation',
+#                 amount=product.price,
+#                 description=payment_description,
+#                 currency='USD'  # Assuming default currency is USD
+#             )
+
+#             user_notice = Notice.objects.create(
+#                 user=product.student,
+#                 notification_type = "payment",
+
+#                 message=f"Your payment for accommodation {product.id} has been received. Your accommodation is now active."
+#             )
+#             admin_notice = Notice.objects.create(
+#                 user=product.hostel.administrator,
+#                 notification_type = "payment",
+
+#                 message=f"A payment for accommodation {product.id} has been received."
+#             )
+#             staff_notices = Notice.objects.filter(user__user_type='staff', user__hostel=product.hostel)
+#             for staff_notice in staff_notices:
+#                 staff_notice = Notice.objects.create(
+#                     user=staff_notice.user,
+#                     notification_type = "payment",
+
+#                     message=f"A payment for accommodation {product.id} has been received."
+#                 )
+
+#             checkout_session = stripe.checkout.Session.create(
+#                 line_items=[
+#                     {
+#                         'price_data': {
+#                             'currency': 'usd',
+#                             'unit_amount': int(product.price) * 100,
+#                             'product_data': {
+#                                 'name': product.id,
+#                             }
+#                         },
+#                         'quantity': 1,
+#                     },
+#                 ],
+#                 metadata={
+#                     "product_id": product.id
+#                 },
+#                 mode='payment',
+#                 success_url=settings.SITE_URL + '?success=true',
+#                 cancel_url=settings.SITE_URL + '?canceled=true',
+#             )
+
+#             # Return redirect to Stripe checkout session URL
+#             return redirect(checkout_session.url)
+
+#         except Accommodations.DoesNotExist:
+#             return Response({'msg': 'Accommodation not found.'}, status=404)
+#         except Hostels.DoesNotExist:
+#             return Response({'msg': 'Hostel not found.'}, status=404)
+#         except Exception as e:
+#             return Response({'msg': 'Something went wrong while creating Stripe session', 'error': str(e)}, status=500)
+
+
+from rest_framework.response import Response
+from rest_framework.response import Response
+
 class Pay(APIView):
     def post(self, request, *args, **kwargs):
         prod_id = self.kwargs["pk"]
@@ -906,7 +995,6 @@ class Pay(APIView):
             product = Accommodations.objects.get(id=prod_id)
             hostel = Hostels.objects.get(id=product.hostel.id)
 
-            # Check if hostel has a stripe key
             if not hostel.stripe_key:
                 raise ValidationError("This hostel does not support payments at the moment.")
 
@@ -915,7 +1003,6 @@ class Pay(APIView):
             product.status = 'Active'
             product.save()
 
-            # Create a Payments object
             payment_description = f"Payment for accommodation {product.id} by {product.student.username} at {timezone.now()}."
             payment = Payments.objects.create(
                 user=product.student,
@@ -924,27 +1011,24 @@ class Pay(APIView):
                 type='accommodation',
                 amount=product.price,
                 description=payment_description,
-                currency='USD'  # Assuming default currency is USD
+                currency='USD'
             )
 
-            user_notice = Notice.objects.create(
+            Notice.objects.create(
                 user=product.student,
-                notification_type = "payment",
-
+                notification_type="payment",
                 message=f"Your payment for accommodation {product.id} has been received. Your accommodation is now active."
             )
-            admin_notice = Notice.objects.create(
+            Notice.objects.create(
                 user=product.hostel.administrator,
-                notification_type = "payment",
-
+                notification_type="payment",
                 message=f"A payment for accommodation {product.id} has been received."
             )
             staff_notices = Notice.objects.filter(user__user_type='staff', user__hostel=product.hostel)
             for staff_notice in staff_notices:
-                staff_notice = Notice.objects.create(
+                Notice.objects.create(
                     user=staff_notice.user,
-                    notification_type = "payment",
-
+                    notification_type="payment",
                     message=f"A payment for accommodation {product.id} has been received."
                 )
 
@@ -961,6 +1045,7 @@ class Pay(APIView):
                         'quantity': 1,
                     },
                 ],
+                payment_method_types=['card'],  # Specify payment method types here
                 metadata={
                     "product_id": product.id
                 },
@@ -969,8 +1054,7 @@ class Pay(APIView):
                 cancel_url=settings.SITE_URL + '?canceled=true',
             )
 
-            # Return redirect to Stripe checkout session URL
-            return redirect(checkout_session.url)
+            return Response({'url': checkout_session.url})
 
         except Accommodations.DoesNotExist:
             return Response({'msg': 'Accommodation not found.'}, status=404)
@@ -978,6 +1062,113 @@ class Pay(APIView):
             return Response({'msg': 'Hostel not found.'}, status=404)
         except Exception as e:
             return Response({'msg': 'Something went wrong while creating Stripe session', 'error': str(e)}, status=500)
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+
+
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+import stripe
+
+
+
+# @csrf_exempt
+# def stripe_webhook(request):
+#     payload = request.body
+#     sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+#     event = None
+
+
+
+
+    
+#     hostel = settings.GLOBAL_HOSTEL
+#     webhook = hostel.stripe_webhook
+
+#     try:
+#         event = stripe.Webhook.construct_event(
+#             payload, sig_header, webhook
+#         )
+#     except ValueError as e:
+#         # Invalid payload
+#         return HttpResponse(status=400)
+#     except stripe.error.SignatureVerificationError as e:
+#         # Invalid signature
+#         return HttpResponse(status=400)
+
+#     # Handle the checkout.session.completed event
+#     if event['type'] == 'checkout.session.completed':
+#         session = event['data']['object']
+
+#         customer_email = session["customer_details"]["email"]
+#         product_id = session["metadata"]["product_id"]
+
+#         product = Accommodations.objects.get(id=product_id)
+#         hostel = Hostels.objects.get(id=product.hostel.id)
+
+#         user_notice = Notice.objects.create(
+#             user=product.student,
+#             notification_type="payment",
+#             message=f"Your payment for accommodation {product.id} has been received. Your accommodation is now active."
+#         )
+#         admin_notice = Notice.objects.create(
+#             user=product.hostel.administrator,
+#             notification_type="payment",
+#             message=f"A payment for accommodation {product.id} has been received."
+#         )
+#         staff_notices = Notice.objects.filter(user__user_type='staff', user__hostel=product.hostel)
+#         for staff_notice in staff_notices:
+#             staff_notice = Notice.objects.create(
+#                 user=staff_notice.user,
+#                 notification_type="payment",
+#                 message=f"A payment for accommodation {product.id} has been received."
+#             )
+
+
+#         product.paid = True
+#         product.status = 'Active'
+#         product.save()
+
+
+#     # Handle the payment_intent.succeeded event
+#     elif event["type"] == "payment_intent.succeeded":
+#         intent = event['data']['object']
+
+#         stripe_customer_id = intent["customer"]
+#         stripe_customer = stripe.Customer.retrieve(stripe_customer_id)
+
+#         customer_email = stripe_customer['email']
+#         product_id = intent["metadata"]["product_id"]
+
+#         product = Accommodations.objects.get(id=product_id)
+#         hostel = Hostels.objects.get(id=product.hostel.id)
+
+#         user_notice = Notice.objects.create(
+#             user=product.student,
+#             notification_type="payment",
+#             message=f"Your payment for accommodation {product.id} has been received. Your accommodation is now active."
+#         )
+#         admin_notice = Notice.objects.create(
+#             user=product.hostel.administrator,
+#             notification_type="payment",
+#             message=f"A payment for accommodation {product.id} has been received."
+#         )
+#         staff_notices = Notice.objects.filter(user__user_type='staff', user__hostel=product.hostel)
+#         for staff_notice in staff_notices:
+#             staff_notice = Notice.objects.create(
+#                 user=staff_notice.user,
+#                 notification_type="payment",
+#                 message=f"A payment for accommodation {product.id} has been received."
+#             )
+
+
+#         product.paid = True
+#         product.status = 'Active'
+#         product.save()
+
+
+#     return HttpResponse(status=200)
 
 
 

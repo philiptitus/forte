@@ -8,6 +8,8 @@ urlpatterns = [
     path('create_maintenance/', CreateMaintenanceAPIView.as_view(), name='create-maintenance'),
     path('create_complaint/', CreateComplaintAPIView.as_view(), name='create-complaint'),
     path('create_review/', ReviewCreateView.as_view(), name='create-review'),
+    # path('webhooks/stripe/', stripe_webhook, name='stripe-webhook'),
+
     path('reviews/', ReviewListView.as_view(), name='review-list'),
     path('notifications/', NotificationListView.as_view(), name='notifications-list'),
     path('payments/', PaymentListView.as_view(), name='payment-list'),

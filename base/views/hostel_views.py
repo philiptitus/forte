@@ -33,32 +33,35 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from ..serializers import *
 import stripe
+from django.conf import settings
 
 class HostelCreateView(APIView):
     def post(self, request):
-        # Check if the user is a staff
-        if request.user.user_type == 'staff':
-            return Response({'detail': 'You have to create a new account to continue.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check if the user is a student
-        if request.user.user_type == 'student':
-            # Check if there are any accommodations for the student
-            if Accommodations.objects.filter(student=request.user).exists():
-                return Response({'detail': 'You have to create a new account to continue.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check if the user is an admin
+        # Check if the user is a staff or student
         if request.user.user_type != 'admin':
-            # Change user_type to 'admin' immediately
-            request.user.user_type = 'admin'
-            request.user.save()
+            return Response({'detail': 'You have to create a new account to continue.'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if the user is already an administrator in another hostel
         existing_hostel_admin = Hostels.objects.filter(administrator=request.user).exists()
         if existing_hostel_admin:
             return Response({'detail': 'You are already an administrator in another hostel.'}, status=status.HTTP_400_BAD_REQUEST)
         
-        stripe_key = request.data.get('stripe_key')
-        if stripe_key:
+        stripe_webhook = request.data.get("stripe_webhook")
+
+        # Get demo_secret from request data, default to False
+        demo_secret = request.data.get("demo_secret", False)
+
+        # If demo_secret is True, use STRIPE_SECRET_KEY from settings
+        if demo_secret:
+            stripe_key = settings.STRIPE_SECRET_KEY
+        else:
+            # Otherwise, get stripe_key from request data
+            stripe_key = request.data.get('stripe_key')
+            # Ensure stripe_key is provided in the request data
+            if not stripe_key:
+                return Response({'detail': 'Stripe API key is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Verify the provided stripe_key
             if not self.verify_stripe_key(stripe_key):
                 return Response({'detail': 'Invalid Stripe API key.'}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -75,8 +78,9 @@ class HostelCreateView(APIView):
             request.user.hostel = hostel
             request.user.save()
             
-            new_hostel = Hostels.objects.get(id = hostel.id)
+            new_hostel = Hostels.objects.get(id=hostel.id)
             new_hostel.stripe_key = stripe_key
+            new_hostel.stripe_webhook = stripe_webhook
             new_hostel.save()
 
             return Response(HostelSerializer(hostel).data, status=status.HTTP_201_CREATED)
@@ -93,6 +97,7 @@ class HostelCreateView(APIView):
         except stripe.error.AuthenticationError:
             # If the request failed due to authentication error (invalid API key), return False
             return False
+    
 
 
 
@@ -382,6 +387,16 @@ from datetime import date, datetime
 
 from datetime import date, datetime
 
+from datetime import date, timedelta, datetime
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
+from django.contrib.auth.models import User
+
+
+
 class AccommodationListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -395,42 +410,32 @@ class AccommodationListView(APIView):
             self.permission_classes = [IsAuthenticated & IsAdminOrStaff]
         else:
             return Response({'detail': 'Invalid user type.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         name = request.query_params.get('name')
         if name:
-            accommodations = accommodations.filter(Q(id__icontains=name) | Q(status__icontains=name) )
-
-
-
-
-
-
-
-
-
+            accommodations = accommodations.filter(Q(id__icontains=name) | Q(status__icontains=name))
 
         # Fetch accommodations whose status is "Active" and due in 7 days or less
         current_date = date.today()
-        upcoming_accommodations = accommodations.filter(status='Active', check_out_date__gte=current_date, check_out_date__lte=current_date + timedelta(days=7))
+        upcoming_accommodations = accommodations.filter(
+            status='Active',
+            check_out_date__gte=current_date,
+            check_out_date__lte=current_date + timedelta(days=7)
+        )
 
         # Iterate through upcoming accommodations to create notices
         for accommodation in upcoming_accommodations:
-            # Calculate the number of days until check-out
             days_until_check_out = (accommodation.check_out_date - current_date).days
+            existing_notice = Notice.objects.filter(user=accommodation.student, days=days_until_check_out).exists()
 
-            # Check if there's already a notice for this accommodation and user with the same message
-            existing_notice = Notice.objects.filter(user=accommodation.student, days = days_until_check_out).exists()
-
-            # Create a notice only if there's no existing notice with the same message
             if not existing_notice:
-                # Prepare the message based on the number of days until check-out
                 if days_until_check_out == 1:
-                    message = "Kindly Prepare to pack out and move out tomorrow If You Need To Prolong Your Stay Wait The Accomodation To Expire Then Create A New One Contact Hostel Management To Maintain Your Room."
+                    message = "Kindly prepare to pack out and move out tomorrow. If you need to prolong your stay, wait for the accommodation to expire, then create a new one. Contact hostel management to maintain your room."
                     notification_type = "Final Reminder"
-                    if accommodation.sent == False:
-                        student = CustomUser.objects.get(id = accommodation.student.id)
+                    if not accommodation.sent:
+                        student = CustomUser.objects.get(id=accommodation.student.id)
                         email = student.email
-                        email_subject = "Final Reminder Your Accomodation Ends Tommorow"
+                        email_subject = "Final Reminder: Your accommodation ends tomorrow"
                         data = {
                             'email_body': message,
                             'email_subject': email_subject,
@@ -439,77 +444,36 @@ class AccommodationListView(APIView):
                         send_normal_email(data)
                         accommodation.sent = True
                         accommodation.save()
-
                 else:
-                    message = f"Your Accomodation ends in: {days_until_check_out} days."
+                    message = f"Your accommodation ends in {days_until_check_out} days."
                     notification_type = "Reminder"
 
-                # Create the notice object
-                notice = Notice.objects.create(user=accommodation.student, message=message, notification_type=notification_type, days = days_until_check_out)
+                Notice.objects.create(user=accommodation.student, message=message, notification_type=notification_type, days=days_until_check_out)
 
-       
-	   
-	   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-        # Fetch accommodations whose status is "Active" and whose check out date is past or current
-        current_date = date.today()
-        expired_accommodations = accommodations.filter(Q(status='Active') & (Q(check_out_date__lte=current_date) | Q(check_out_date=current_date)))
+        # Handling expired accommodations
+        expired_accommodations = accommodations.filter(
+            Q(status='Active') & (Q(check_out_date__lte=current_date) | Q(check_out_date=current_date))
+        )
         if expired_accommodations.count() > 0:
             ref_list = list(expired_accommodations)
             for a in ref_list:
-                maintains = Maintenance.objects.filter(student = a.student)
-
-                for m in maintains:
-                    m.delete()
-                complains = Complaints.objects.filter(student = a.student)
-
-                for c in complains:
-                    c.delete()
-
+                Maintenance.objects.filter(student=a.student).delete()
+                Complaints.objects.filter(student=a.student).delete()
 
                 hostel = Hostels.objects.get(id=a.hostel.id)
-                hostel.count -= 1
-                hostel.save()
-                user_notice = Notice.objects.create(
+                if hostel.count > 0:
+                    hostel.count -= 1
+                    hostel.save()
+                
+                Notice.objects.create(
                     user=a.student,
-                    notification_type = "accomodation",
-                    message=f"Dear Customer Thank you For Choosing {hostel.hostel_name} We Hope You Enjoyed Your Stay Be sure to leave your Feedback for this hostel under Profile -> Reviews Thanks for Trusting and using Forte"
+                    notification_type="accommodation",
+                    message=f"Dear customer, thank you for choosing {hostel.hostel_name}. We hope you enjoyed your stay. Be sure to leave your feedback for this hostel under Profile -> Reviews. Thanks for trusting and using Forte."
                 )
+                
                 user = a.student
                 email = user.email
-                message = f"Dear Customer Thank you For Choosing {hostel.hostel_name} for your stay We Hope You Enjoyed Your Stay Be sure to leave your Feedback for the hostel under Profile -> Reviews Thanks for Trusting and using Forte Be sure to tell others about our website ok :)"
+                message = f"Dear customer, thank you for choosing {hostel.hostel_name} for your stay. We hope you enjoyed your stay. Be sure to leave your feedback for the hostel under Profile -> Reviews. Thanks for trusting and using Forte. Be sure to tell others about our website :)"
                 email_subject = "Thank You"
                 data = {
                     'email_body': message,
@@ -518,25 +482,9 @@ class AccommodationListView(APIView):
                 }
                 send_normal_email(data)
 
-        # Print check out date and current time for debugging
-        print("Number of expired accommodations:", expired_accommodations.count())
+        expired_accommodations.update(status='Completed')
 
-        # Convert the queryset to a list for debugging
-        expired_accommodations_list = list(expired_accommodations)
-        print("Expired accommodations list:", expired_accommodations_list)
-
-        # Update the status of accommodations whose check out date is past to "Completed"
-        completed_accommodations = expired_accommodations.filter(check_out_date__lte=current_date)
-        completed_accommodations.update(status='Completed')
-        if completed_accommodations.count() > 0:
-            print("There are some expired accommodations")
-
-
-        # Iterate through accommodations whose check out date is past and update the user and room information
-        for accommodation in expired_accommodations_list:
-            print("Check-out Date:", accommodation.check_out_date)
-            print("Current Time:", datetime.now())
-
+        for accommodation in expired_accommodations:
             person = CustomUser.objects.get(id=accommodation.student.id)
             person.hostel = None
             person.save()
@@ -546,33 +494,28 @@ class AccommodationListView(APIView):
                 old_room.current_occupancy -= 1
                 old_room.save()
 
-
-
-
-
-
-
-
-
-    # Handling Late Arrivals:
-
-        current_date = date.today()
-        late_accommodations = accommodations.filter(Q(status='Delayed Payment') & (Q(check_in_date__lt=current_date) ))
+        # Handling late arrivals
+        late_accommodations = accommodations.filter(
+            Q(status='Delayed Payment') & Q(check_in_date__lt=current_date)
+        )
         if late_accommodations.count() > 0:
             ref_list = list(late_accommodations)
             for a in ref_list:
                 hostel = Hostels.objects.get(id=a.hostel.id)
-                hostel.count -= 1
-                hostel.save()
-                user_notice = Notice.objects.create(
+                if hostel.count > 0:
+                    hostel.count -= 1
+                    hostel.save()
+
+                Notice.objects.create(
                     user=a.student,
-                    notification_type = "accomodation",
-                    message=f"Your Accomodation in {hostel.hostel_name} Was Cancelled Because You Did Not Arrive On Time Accomodations Active For 24 Hours Maximum Before Payment. Make sure You Are At The Hostel Premises when Making Payments"
+                    notification_type="accommodation",
+                    message=f"Your accommodation in {hostel.hostel_name} was cancelled because you did not arrive on time. Accommodations are active for a maximum of 24 hours before payment. Make sure you are at the hostel premises when making payments."
                 )
+                
                 user = a.student
                 email = user.email
-                message = f"Your Accomodation In {hostel.hostel_name} was Cancelled Because You Did Not Arrive On Time Accomodations Active For 24 Hours Maximum Before Payment. Make sure You Are At The Hostel Premises when Making Payments"
-                email_subject = "Late Arrivals Accomodation Cancelled"
+                message = f"Your accommodation in {hostel.hostel_name} was cancelled because you did not arrive on time. Accommodations are active for a maximum of 24 hours before payment. Make sure you are at the hostel premises when making payments."
+                email_subject = "Late Arrivals Accommodation Cancelled"
                 data = {
                     'email_body': message,
                     'email_subject': email_subject,
@@ -580,25 +523,9 @@ class AccommodationListView(APIView):
                 }
                 send_normal_email(data)
 
-        # Print check out date and current time for debugging
-        print("Number of Late arrivals:", late_accommodations.count())
+        late_accommodations.update(status='Cancelled')
 
-        # Convert the queryset to a list for debugging
-        late_accommodations_list = list(late_accommodations)
-        print("Late accommodations list:", late_accommodations_list)
-
-        # Update the status of accommodations whose check out date is past to "Completed"
-        unused_accommodations = late_accommodations.filter(check_in_date__lt=current_date)
-        unused_accommodations.update(status='Cancelled')
-        if unused_accommodations.count() > 0:
-            print("There are some Late accomodations")
-
-
-        # Iterate through accommodations whose check out date is past and update the user and room information
-        for accommodation in late_accommodations_list:
-            print("Check-in Date:", accommodation.check_in_date)
-            print("Current Time:", datetime.now())
-
+        for accommodation in late_accommodations:
             person = CustomUser.objects.get(id=accommodation.student.id)
             person.hostel = None
             person.save()
@@ -607,54 +534,6 @@ class AccommodationListView(APIView):
                 old_room = accommodation.room
                 old_room.current_occupancy -= 1
                 old_room.save()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         accommodations = accommodations.order_by('-id')  # Sort by check-in date in descending order
 
@@ -808,7 +687,7 @@ class UpdateMaintenanceStatus(APIView):
             return Response({"message": "Invalid status provided."}, status=status.HTTP_400_BAD_REQUEST)
         
         # Create a notice object to notify the maintenance owner
-        notice_message = f"Your maintenance request for this facility with ID {maintenance_request.id} has been updated to {status_value}."
+        notice_message = f"Your maintenance request NO: {maintenance_request.id} has been updated to {status_value}."
         notice = Notice.objects.create(user=maintenance_request.student, message=notice_message, notification_type='maintenance')
         
         maintenance_request.save()
@@ -858,47 +737,33 @@ class EditHostelInfo(APIView):
         stripe_key = request.data.get('stripe_key', hostel.stripe_key)
         address = request.data.get('address', hostel.address)
         phone = request.data.get('phone', hostel.phone)
-        print(phone)
         email = request.data.get('email', hostel.email)
-        print(email)
         room_price_1 = request.data.get('room_price_1', hostel.room_price_1)
         room_price_2 = request.data.get('room_price_2', hostel.room_price_2)
         room_price_4 = request.data.get('room_price_4', hostel.room_price_4)
 
-        stripe_key = request.data.get('stripe_key')
+        # Convert room prices to integers
+        room_price_1 = int(float(room_price_1))
+        room_price_2 = int(float(room_price_2))
+        room_price_4 = int(float(room_price_4))
+
+
         if stripe_key:
             if not self.verify_stripe_key(stripe_key):
                 return Response({'detail': 'Invalid Stripe API key.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             pass
-            
-        # Check which fields are being updated
-        updated_fields = []
-        if hostel_name != hostel.hostel_name:
-            updated_fields.append("hostel name")
-        if phone != hostel.phone:
-            updated_fields.append("phone")
-        if email != hostel.email:
-            updated_fields.append("email")
-        
-        if stripe_key != hostel.stripe_key:
-            updated_fields.append("stripe key")
 
-
-        if address != hostel.address:
-            updated_fields.append("address")
-        if room_price_1 != hostel.room_price_1:
-            updated_fields.append("room price 1")
-        if room_price_2 != hostel.room_price_2:
-            updated_fields.append("room price 2")
-        if room_price_4 != hostel.room_price_4:
-            updated_fields.append("room price 4")
+        # Validate room prices
+        room_prices = [room_price_1, room_price_2, room_price_4]
+        for price in room_prices:
+            if price is not None and (price < 100 or price > 2000):
+                return Response({'detail': 'Room prices must be between 100 and 2000.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Update hostel information
         hostel.hostel_name = hostel_name
         if stripe_key:
             hostel.stripe_key = stripe_key
- 
         hostel.address = address
         hostel.phone = phone
         hostel.email = email
@@ -908,11 +773,29 @@ class EditHostelInfo(APIView):
         hostel.save()
 
         # Create notifications for users if specific fields are updated
+        updated_fields = []
+        if hostel_name != hostel.hostel_name:
+            updated_fields.append("hostel name")
+        if phone != hostel.phone:
+            updated_fields.append("phone")
+        if email != hostel.email:
+            updated_fields.append("email")
+        if stripe_key != hostel.stripe_key:
+            updated_fields.append("stripe key")
+        if address != hostel.address:
+            updated_fields.append("address")
+        if room_price_1 != hostel.room_price_1:
+            updated_fields.append("room price 1")
+        if room_price_2 != hostel.room_price_2:
+            updated_fields.append("room price 2")
+        if room_price_4 != hostel.room_price_4:
+            updated_fields.append("room price 4")
+
         if updated_fields:
             message = f"The following information of {hostel.hostel_name} hostel has been updated: {', '.join(updated_fields)}."
             users_to_notify = CustomUser.objects.filter(hostel=hostel)
             for user in users_to_notify:
-                notice = Notice.objects.create(user=user, message=message, notification_type='accomodation')
+                notice = Notice.objects.create(user=user, message=message, notification_type='accommodation')
                 notice.save()
 
         return Response({"message": "Hostel information updated successfully."})
@@ -929,6 +812,10 @@ class EditHostelInfo(APIView):
         except stripe.error.AuthenticationError:
             # If the request failed due to authentication error (invalid API key), return False
             return False
+
+    
+
+
 
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -967,6 +854,50 @@ class UploadImage(APIView):
         except Exception as e:
             logger.error(f'Error uploading images: {str(e)}')
             return Response({'detail': 'Internal Server Error'}, status=500)
+
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+
+class ResetHostelImage(APIView):
+    def post(self, request):
+        try:
+            # Retrieve the hostel object
+            hostel_id = request.user.hostel.id
+            hostel = get_object_or_404(Hostels, id=hostel_id)
+
+            # Check permission (assuming permission logic remains the same)
+            if request.user != hostel.administrator:
+                return Response({'detail': 'You are not authorized to reset images for this hostel.'}, status=403)
+            
+            image_field_name = request.data.get('imag')
+            print(image_field_name)
+
+            # Check if the image field name is valid
+            if image_field_name not in ['imag1', 'imag2', 'imag3', 'imag4', 'imag5', 'imag6', 'imag7', 'imag8', 'imag9', 'imag10', 'imag11']:
+                print("Invalid Field Name")
+                return Response({'detail': 'Invalid image field name'}, status=400)
+
+            setattr(hostel, image_field_name, None)
+
+            hostel.save()
+
+
+
+
+            return Response({'detail': 'Image was reset successfully'})
+        except Exception as e:
+            logger.error(f'Error resetting image: {str(e)}')
+            print("Internal server error")
+
+            return Response({'detail': 'Internal Server Error'}, status=500)
+
+
+
 
 
 class DeleteNoticeAPIView(APIView):

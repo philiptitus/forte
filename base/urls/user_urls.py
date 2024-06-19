@@ -1,8 +1,13 @@
-from django.urls import path
+from django.urls import path, include
 from ..views.user_views import *
 
 
 urlpatterns = [
+    path('accounts/', include('allauth.urls')),
+    path('accounts/login/', MyLoginView.as_view(), name='account_login'),
+
+    path('reset/', ResetImage.as_view(), name='image-reset'),
+
     path('upload/', uploadImage.as_view(), name='image-upload'),
     path('login/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('register/', RegisterUser.as_view(), name='register'),

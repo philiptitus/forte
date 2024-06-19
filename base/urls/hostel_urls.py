@@ -3,6 +3,9 @@ from ..views.hostel_views import *
 
 
 urlpatterns = [
+
+    path('reset/', ResetHostelImage.as_view(), name='image-reset'),
+
     path('upload/', UploadImage.as_view(), name='image-upload'),
     path('new/', HostelCreateView.as_view(), name='create-hostel'),
     path('new_room/', RoomsCreateView.as_view(), name='create-room'),

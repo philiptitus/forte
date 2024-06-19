@@ -12,6 +12,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from ..models import CustomUser  as Userr
 from ast import Expression
+from django.views.decorators.csrf import csrf_exempt
 from multiprocessing import context
 from django.shortcuts import render
 from rest_framework.generics import GenericAPIView
@@ -54,6 +55,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from django.db.models import Q
+from allauth.account.views import LoginView
+
 
 
 
@@ -70,6 +73,25 @@ from rest_framework.pagination import PageNumberPagination
 
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from django.db.models import Q
+
+from django.shortcuts import render
+from rest_framework.generics import GenericAPIView
+from rest_framework.response import Response
+from rest_framework import status
+
+# Create your views here.
+
+
+
+class MyLoginView(TokenObtainPairView):
+        serializer_class = MyTokenObtainPairSerializer
+
+        # No need for JWT authentication logic here
+        # No need to generate JWT token or expiration time
+        
+        # Return the default response provided by the parent class
+
+
 
 @permission_classes([IsAuthenticated])
 class GetUsersView(APIView):
@@ -180,6 +202,38 @@ class uploadImage(APIView):
         except Exception as e:
             print(f'Error uploading image: {str(e)}')  # Print error to console
             return Response({'detail': f'Error uploading image: {str(e)}'}, status=500)
+
+
+
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+
+class ResetImage(APIView):
+    def post(self, request):
+        try:
+            data = request.data
+
+            user = request.user
+
+            if request.user != user:
+                return Response({'detail': 'You are not authorized to reset the image for this user.'}, status=403)
+
+            # Set the avi field back to its default value
+            user.avi = '/avatar.png'
+            user.save()
+
+            return Response({'detail': 'Image was reset successfully'})
+        except Exception as e:
+            print(f'Error resetting image: {str(e)}')  # Print error to console
+            return Response({'detail': f'Error resetting image: {str(e)}'}, status=500)
+
+
+
 
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -329,7 +383,7 @@ class RegisterUser(APIView):
             fields_to_check = ['name', 'email', 'password']
             email_message = "Welcome to FORTE! We hope you enjoy our services Be Sure To Verify Your Account Or You Will Not Get Your Account Back When You Lose Your Password"
         elif user_type == 'staff':
-            abslink = "http://localhost:3000/#/forgot-password/"
+            abslink = "http://localhost:3000/authentication/forget-password/"
             fields_to_check = ['name', 'email', 'password']
             email_message = f"You have been invited as a staff member at a FORTE hostel. Go Here: {abslink} and enter your Email to Reset Your Password and then log in with Your New Password."
         elif user_type == 'student':
@@ -566,10 +620,16 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from django.conf import settings
-@permission_classes([IsAuthenticated])
+
 class Createotp(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         user = request.user
+
+        if user.is_verified:
+            return Response({'detail': 'Your account is already verified.'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             otp_instance = OneTimePassword.objects.get(user=user)
             otp_instance.delete()
@@ -587,9 +647,7 @@ class Createotp(APIView):
 
         send_mail(subject, message, from_email, [to_email])
 
-        return JsonResponse({'message': 'OTP created and sent successfully.'})
-
-
+        return Response({'message': 'OTP created and sent successfully.'})
 @permission_classes([IsAuthenticated])
 class VerifyUserEmail(GenericAPIView):
     def post(self, request):

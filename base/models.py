@@ -27,9 +27,12 @@ class CustomUserManager(BaseUserManager):
 
 
 
+AUTH_PROVIDERS ={'email':'email', 'google':'google'}
 
 class CustomUser(AbstractUser):
     id = models.AutoField(primary_key=True, editable=False, default=None)
+    auth_provider=models.CharField(max_length=50, blank=False, null=False, default=AUTH_PROVIDERS.get('email'))
+
 
     email = models.EmailField(unique=True)
     hostel = models.ForeignKey('hostels.Hostels', on_delete=models.CASCADE, null=True, blank=True)
@@ -142,6 +145,17 @@ class Reviews(models.Model):
 
     def __str__(self):
         return f"Review by {self.user} for {self.hostel}"
+    
+
+
+class PendingReviews(models.Model):
+    hostel = models.ForeignKey('hostels.Hostels', on_delete=models.CASCADE, null =True, blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null =True, blank=True)
+    date_created = models.DateTimeField(default=timezone.now)  # Default to the current date and time
+
+
+    def __str__(self):
+        return f"Pending Review for {self.hostel} by {self.user}"
 
 
 

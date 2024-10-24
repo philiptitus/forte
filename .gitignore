@@ -1,0 +1,95 @@
+# Django related
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+*.sqlite3
+
+# Django migrations
+**/migrations/*
+!**/migrations/__init__.py
+
+# Environment files
+.env
+*.env
+
+# Virtual environments
+env/
+venv/
+ENV/
+.VENV/
+.venv/
+ENV.bak/
+env.bak/
+
+# Media
+media/
+node_modules/
+
+# IDE related
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Translations
+*.mo
+
+# Django related folders
+frontend/
+landingpage/
+
+# Pytest cache
+.pytest_cache/
+
+# Local files
+*.local
+
+# MySQL dumps
+*.sql

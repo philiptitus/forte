@@ -394,7 +394,155 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
 from django.contrib.auth.models import User
+from base.utils import *
 
+
+# class AccommodationListView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         user_type = request.user.user_type
+
+#         if user_type == 'student':
+#             accommodations = Accommodations.objects.filter(student=request.user)
+#         elif user_type == 'admin' or user_type == 'staff':
+#             accommodations = Accommodations.objects.filter(hostel=request.user.hostel)
+#             self.permission_classes = [IsAuthenticated & IsAdminOrStaff]
+#         else:
+#             return Response({'detail': 'Invalid user type.'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         name = request.query_params.get('name')
+#         if name:
+#             accommodations = accommodations.filter(Q(id__icontains=name) | Q(status__icontains=name))
+
+#         # Fetch accommodations whose status is "Active" and due in 7 days or less
+#         current_date = date.today()
+#         upcoming_accommodations = accommodations.filter(
+#             status='Active',
+#             check_out_date__gte=current_date,
+#             check_out_date__lte=current_date + timedelta(days=7)
+#         )
+
+#         # Iterate through upcoming accommodations to create notices
+#         for accommodation in upcoming_accommodations:
+#             days_until_check_out = (accommodation.check_out_date - current_date).days
+#             existing_notice = Notice.objects.filter(user=accommodation.student, days=days_until_check_out).exists()
+
+#             if not existing_notice:
+#                 if days_until_check_out == 1:
+#                     message = "Kindly prepare to pack out and move out tomorrow. If you need to prolong your stay, wait for the accommodation to expire, then create a new one. Contact hostel management to maintain your room."
+#                     notification_type = "Final Reminder"
+#                     if not accommodation.sent:
+#                         student = CustomUser.objects.get(id=accommodation.student.id)
+#                         email = student.email
+#                         email_subject = "Final Reminder: Your accommodation ends tomorrow"
+#                         data = {
+#                             'email_body': message,
+#                             'email_subject': email_subject,
+#                             'to_email': email
+#                         }
+#                         send_normal_email(data)
+#                         accommodation.sent = True
+#                         accommodation.save()
+#                 else:
+#                     message = f"Your accommodation ends in {days_until_check_out} days."
+#                     notification_type = "Reminder"
+
+#                 Notice.objects.create(user=accommodation.student, message=message, notification_type=notification_type, days=days_until_check_out)
+
+#         # Handling expired accommodations
+#         expired_accommodations = accommodations.filter(
+#             Q(status='Active') & (Q(check_out_date__lte=current_date) | Q(check_out_date=current_date))
+#         )
+#         if expired_accommodations.count() > 0:
+#             ref_list = list(expired_accommodations)
+#             for a in ref_list:
+#                 Maintenance.objects.filter(student=a.student).delete()
+#                 Complaints.objects.filter(student=a.student).delete()
+
+#                 hostel = Hostels.objects.get(id=a.hostel.id)
+#                 if hostel.count > 0:
+#                     hostel.count -= 1
+#                     hostel.save()
+                
+#                 Notice.objects.create(
+#                     user=a.student,
+#                     notification_type="accommodation",
+#                     message=f"Dear customer, thank you for choosing {hostel.hostel_name}. We hope you enjoyed your stay. Be sure to leave your feedback for this hostel under Profile -> Reviews. Thanks for trusting and using Forte."
+#                 )
+                
+#                 user = a.student
+#                 email = user.email
+#                 message = f"Dear customer, thank you for choosing {hostel.hostel_name} for your stay. We hope you enjoyed your stay. Be sure to leave your feedback for the hostel under Profile -> Reviews. Thanks for trusting and using Forte. Be sure to tell others about our website :)"
+#                 email_subject = "Thank You"
+#                 data = {
+#                     'email_body': message,
+#                     'email_subject': email_subject,
+#                     'to_email': email
+#                 }
+#                 send_normal_email(data)
+
+#         expired_accommodations.update(status='Completed')
+
+#         for accommodation in expired_accommodations:
+#             person = CustomUser.objects.get(id=accommodation.student.id)
+#             person.hostel = None
+#             person.save()
+
+#             if accommodation.room:
+#                 old_room = accommodation.room
+#                 old_room.current_occupancy -= 1
+#                 old_room.save()
+
+#         # Handling late arrivals
+#         late_accommodations = accommodations.filter(
+#             Q(status='Delayed Payment') & Q(check_in_date__lt=current_date)
+#         )
+#         if late_accommodations.count() > 0:
+#             ref_list = list(late_accommodations)
+#             for a in ref_list:
+#                 hostel = Hostels.objects.get(id=a.hostel.id)
+#                 if hostel.count > 0:
+#                     hostel.count -= 1
+#                     hostel.save()
+
+#                 Notice.objects.create(
+#                     user=a.student,
+#                     notification_type="accommodation",
+#                     message=f"Your accommodation in {hostel.hostel_name} was cancelled because you did not arrive on time. Accommodations are active for a maximum of 24 hours before payment. Make sure you are at the hostel premises when making payments."
+#                 )
+                
+#                 user = a.student
+#                 email = user.email
+#                 message = f"Your accommodation in {hostel.hostel_name} was cancelled because you did not arrive on time. Accommodations are active for a maximum of 24 hours before payment. Make sure you are at the hostel premises when making payments."
+#                 email_subject = "Late Arrivals Accommodation Cancelled"
+#                 data = {
+#                     'email_body': message,
+#                     'email_subject': email_subject,
+#                     'to_email': email
+#                 }
+#                 send_normal_email(data)
+
+#         late_accommodations.update(status='Cancelled')
+
+#         for accommodation in late_accommodations:
+#             person = CustomUser.objects.get(id=accommodation.student.id)
+#             person.hostel = None
+#             person.save()
+
+#             if accommodation.room:
+#                 old_room = accommodation.room
+#                 old_room.current_occupancy -= 1
+#                 old_room.save()
+
+#         accommodations = accommodations.order_by('-id')  # Sort by check-in date in descending order
+
+#         paginator = PageNumberPagination()
+#         paginator.page_size = 10
+#         result_page = paginator.paginate_queryset(accommodations, request)
+        
+#         serializer = AccomodationsSerializer(result_page, many=True)
+#         return paginator.get_paginated_response(serializer.data)
 
 
 class AccommodationListView(APIView):
@@ -415,135 +563,27 @@ class AccommodationListView(APIView):
         if name:
             accommodations = accommodations.filter(Q(id__icontains=name) | Q(status__icontains=name))
 
-        # Fetch accommodations whose status is "Active" and due in 7 days or less
-        current_date = date.today()
-        upcoming_accommodations = accommodations.filter(
-            status='Active',
-            check_out_date__gte=current_date,
-            check_out_date__lte=current_date + timedelta(days=7)
-        )
 
-        # Iterate through upcoming accommodations to create notices
-        for accommodation in upcoming_accommodations:
-            days_until_check_out = (accommodation.check_out_date - current_date).days
-            existing_notice = Notice.objects.filter(user=accommodation.student, days=days_until_check_out).exists()
-
-            if not existing_notice:
-                if days_until_check_out == 1:
-                    message = "Kindly prepare to pack out and move out tomorrow. If you need to prolong your stay, wait for the accommodation to expire, then create a new one. Contact hostel management to maintain your room."
-                    notification_type = "Final Reminder"
-                    if not accommodation.sent:
-                        student = CustomUser.objects.get(id=accommodation.student.id)
-                        email = student.email
-                        email_subject = "Final Reminder: Your accommodation ends tomorrow"
-                        data = {
-                            'email_body': message,
-                            'email_subject': email_subject,
-                            'to_email': email
-                        }
-                        send_normal_email(data)
-                        accommodation.sent = True
-                        accommodation.save()
-                else:
-                    message = f"Your accommodation ends in {days_until_check_out} days."
-                    notification_type = "Reminder"
-
-                Notice.objects.create(user=accommodation.student, message=message, notification_type=notification_type, days=days_until_check_out)
-
-        # Handling expired accommodations
-        expired_accommodations = accommodations.filter(
-            Q(status='Active') & (Q(check_out_date__lte=current_date) | Q(check_out_date=current_date))
-        )
-        if expired_accommodations.count() > 0:
-            ref_list = list(expired_accommodations)
-            for a in ref_list:
-                Maintenance.objects.filter(student=a.student).delete()
-                Complaints.objects.filter(student=a.student).delete()
-
-                hostel = Hostels.objects.get(id=a.hostel.id)
-                if hostel.count > 0:
-                    hostel.count -= 1
-                    hostel.save()
-                
-                Notice.objects.create(
-                    user=a.student,
-                    notification_type="accommodation",
-                    message=f"Dear customer, thank you for choosing {hostel.hostel_name}. We hope you enjoyed your stay. Be sure to leave your feedback for this hostel under Profile -> Reviews. Thanks for trusting and using Forte."
-                )
-                
-                user = a.student
-                email = user.email
-                message = f"Dear customer, thank you for choosing {hostel.hostel_name} for your stay. We hope you enjoyed your stay. Be sure to leave your feedback for the hostel under Profile -> Reviews. Thanks for trusting and using Forte. Be sure to tell others about our website :)"
-                email_subject = "Thank You"
-                data = {
-                    'email_body': message,
-                    'email_subject': email_subject,
-                    'to_email': email
-                }
-                send_normal_email(data)
-
-        expired_accommodations.update(status='Completed')
-
-        for accommodation in expired_accommodations:
-            person = CustomUser.objects.get(id=accommodation.student.id)
-            person.hostel = None
-            person.save()
-
-            if accommodation.room:
-                old_room = accommodation.room
-                old_room.current_occupancy -= 1
-                old_room.save()
-
-        # Handling late arrivals
-        late_accommodations = accommodations.filter(
-            Q(status='Delayed Payment') & Q(check_in_date__lt=current_date)
-        )
-        if late_accommodations.count() > 0:
-            ref_list = list(late_accommodations)
-            for a in ref_list:
-                hostel = Hostels.objects.get(id=a.hostel.id)
-                if hostel.count > 0:
-                    hostel.count -= 1
-                    hostel.save()
-
-                Notice.objects.create(
-                    user=a.student,
-                    notification_type="accommodation",
-                    message=f"Your accommodation in {hostel.hostel_name} was cancelled because you did not arrive on time. Accommodations are active for a maximum of 24 hours before payment. Make sure you are at the hostel premises when making payments."
-                )
-                
-                user = a.student
-                email = user.email
-                message = f"Your accommodation in {hostel.hostel_name} was cancelled because you did not arrive on time. Accommodations are active for a maximum of 24 hours before payment. Make sure you are at the hostel premises when making payments."
-                email_subject = "Late Arrivals Accommodation Cancelled"
-                data = {
-                    'email_body': message,
-                    'email_subject': email_subject,
-                    'to_email': email
-                }
-                send_normal_email(data)
-
-        late_accommodations.update(status='Cancelled')
-
-        for accommodation in late_accommodations:
-            person = CustomUser.objects.get(id=accommodation.student.id)
-            person.hostel = None
-            person.save()
-
-            if accommodation.room:
-                old_room = accommodation.room
-                old_room.current_occupancy -= 1
-                old_room.save()
 
         accommodations = accommodations.order_by('-id')  # Sort by check-in date in descending order
 
         paginator = PageNumberPagination()
         paginator.page_size = 10
         result_page = paginator.paginate_queryset(accommodations, request)
-        
+
         serializer = AccomodationsSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
+
+
+class HandleAccommodationsView(APIView):
+
+    def post(self, request):
+        handle_upcoming_accommodations()
+        handle_expired_accommodations()
+        handle_late_accommodations()
+
+        return Response({'detail': 'Accommodations handled successfully.'}, status=200)
 
 class DeleteRoom(APIView):
     def delete(self, request, pk):

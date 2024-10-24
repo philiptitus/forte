@@ -3,8 +3,6 @@ from ..views.user_views import *
 
 
 urlpatterns = [
-    path('accounts/', include('allauth.urls')),
-    path('accounts/login/', MyLoginView.as_view(), name='account_login'),
 
     path('reset/', ResetImage.as_view(), name='image-reset'),
 

@@ -55,7 +55,6 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from django.db.models import Q
-from allauth.account.views import LoginView
 
 
 
@@ -81,15 +80,6 @@ from rest_framework import status
 
 # Create your views here.
 
-
-
-class MyLoginView(TokenObtainPairView):
-        serializer_class = MyTokenObtainPairSerializer
-
-        # No need for JWT authentication logic here
-        # No need to generate JWT token or expiration time
-        
-        # Return the default response provided by the parent class
 
 
 

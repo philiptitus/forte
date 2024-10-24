@@ -25,6 +25,8 @@ env.bak/
 
 # Media
 media/
+staticfiles/
+static/
 node_modules/
 
 # IDE related

@@ -1,92 +1,128 @@
-Forte
-Table of Contents
+# Forte Hostel Management System
 
-    Project Description
-    Installation
-    Usage
-    Running Tests
-    Technologies Used
-    Contributing
-    License
+---
 
-Project Description
+## Table of Contents
 
-Forte is a Django-based project designed to streamline student hostel bookings.
+- [Project Description](#project-description)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Running Tests](#running-tests)
+- [Technologies Used](#technologies-used)
+- [Contributing](#contributing)
+- [License](#license)
 
+---
 
-Installation
+## Project Description
 
-    Clone the repository:
+**Forte** is a powerful Django-based application designed to simplify student hostel bookings. It provides a seamless experience for students to find, book, and manage their hostel accommodations, while hostel administrators benefit from an efficient management system.
 
-    sh
+---
 
-git clone https://github.com/philiptitus/forte.git
-cd forte
+## Installation
 
-Create and activate a virtual environment:
+To get started with **Forte**, follow these steps:
 
-sh
+1. **Clone the repository:**
 
-python3 -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```bash
+   git clone https://github.com/philiptitus/forte.git
+   cd forte
+   ```
 
-Install dependencies:
+2. **Create and activate a virtual environment:**
 
-sh
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
 
-pip install -r requirements.txt
+3. **Install dependencies:**
 
-Set up the database:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-sh
+4. **Set up the database:**
 
-python manage.py migrate
+   ```bash
+   python manage.py migrate
+   ```
 
-Create a superuser:
+5. **Create a superuser for admin access:**
 
-sh
+   ```bash
+   python manage.py createsuperuser
+   ```
 
-python manage.py createsuperuser
+6. **Run the development server:**
 
-Run the development server:
+   ```bash
+   python manage.py runserver
+   ```
 
-sh
+---
 
-    python manage.py runserver
+## Usage
 
-Usage
+Once the server is running:
 
-    Access the project at http://127.0.0.1:8000/.
-    Admin interface: http://127.0.0.1:8000/admin/
+- Access the project at [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
+- Use the admin interface at [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/) to manage bookings, users, and other application data.
 
+---
 
+## Running Tests
 
-Running Tests
+To run tests for **Forte**, execute:
 
-To run tests, use the following command:
-
-sh
-
+```bash
 python manage.py test
+```
 
-Technologies Used
+---
 
-    Python
-    Django
-    Django REST Framework
-    PostgreSQL
+## Technologies Used
 
+- **Python**  
+- **Django**  
+- **Django REST Framework**  
+- **PostgreSQL**  
 
-Contributing
+---
 
-Contributions are welcome! Please follow these steps:
+## Contributing
 
-    Fork the repository
-    Create a new branch (git checkout -b feature/your-feature)
-    Commit your changes (git commit -am 'Add some feature')
-    Push to the branch (git push origin feature/your-feature)
-    Create a new Pull Request
+We welcome contributions to **Forte Hostel Management System**! To contribute:
 
-License
+1. Fork the repository.
+2. Create a new branch for your feature:
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+
+3. Commit your changes:
+
+   ```bash
+   git commit -am 'Add some feature'
+   ```
+
+4. Push to the branch:
+
+   ```bash
+   git push origin feature/your-feature
+   ```
+
+5. Create a new Pull Request for review.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for full details.
+
+---
+
+© Philip Titus 2023
